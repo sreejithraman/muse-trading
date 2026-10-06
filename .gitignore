@@ -3,6 +3,9 @@
 packages/thesis/theses/*.yaml
 !packages/thesis/theses/EXAMPLE.yaml
 
+# Local-only stop overrides for the TA demo (real book levels)
+packages/ta/fixed_stops.local.json
+
 # local runtime junk
 __pycache__/
 *.pyc

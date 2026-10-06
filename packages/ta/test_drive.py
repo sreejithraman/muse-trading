@@ -7,6 +7,7 @@ Read-only demo — touches no brokerage account.
 """
 import csv
 import io
+import json
 import sys
 import urllib.request
 from pathlib import Path
@@ -15,9 +16,18 @@ sys.path.insert(0, str(Path(__file__).resolve().parent))
 from signals import atr_stop, rvol, rs_vs_benchmark, vol_regime  # noqa: E402
 
 TICKERS = ["MU", "INTC", "CRWD", "SMMT", "ARWR", "RKLB"]
-# book's current fixed stops (exception: ARWR uses the $60 close rule)
-FIXED_STOPS = {"MU": 872.92, "INTC": 103.80, "CRWD": 197.81,
-               "SMMT": 14.46, "ARWR": 60.00, "RKLB": 59.79}
+# Illustrative fixed stops for the demo comparison (not real positions).
+# To compare against your own book's stops, create fixed_stops.local.json
+# next to this file: {"MU": 900.00, ...} — it is gitignored and never pushed.
+ILLUSTRATIVE_STOPS = {"MU": 900.00, "INTC": 100.00, "CRWD": 240.00,
+                      "SMMT": 15.00, "ARWR": 55.00, "RKLB": 65.00}
+
+
+def load_fixed_stops() -> dict:
+    local = Path(__file__).resolve().parent / "fixed_stops.local.json"
+    if local.exists():
+        return json.loads(local.read_text())
+    return ILLUSTRATIVE_STOPS
 
 
 def fetch_bars(symbol: str) -> list[dict]:
@@ -51,6 +61,7 @@ def fetch_bars(symbol: str) -> list[dict]:
 
 
 def main() -> int:
+    fixed_stops = load_fixed_stops()
     data = {t: fetch_bars(t) for t in TICKERS}
     qqq = fetch_bars("QQQ")
     missing = [t for t in TICKERS if len(data[t]) < 40]
@@ -67,13 +78,14 @@ def main() -> int:
         rv = rvol(bars)
         rs = rs_vs_benchmark(bars, qqq)
         regime = vol_regime(bars)
-        fixed = FIXED_STOPS[t]
+        fixed = fixed_stops[t]
         print(f"{t:<5}{s['close']:>9.2f}{s['atr']:>8.2f}{s['atr_pct']:>6.1f}%"
               f"{s['stop']:>11.2f}{fixed:>9.2f}{rv or 0:>6.2f}{rs or 0:>+7.1f}%  "
               f"{regime}")
     print("-" * 78)
     print("3xATR-STOP = volatility-based suggestion (close - 3*ATR14); "
-          "FIXED = book's current stop. ARWR fixed is the $60 exception rule.")
+          "FIXED = illustrative fixed stop (drop a fixed_stops.local.json "
+          "next to this file to compare your own book's stops).")
     return 0
 
 

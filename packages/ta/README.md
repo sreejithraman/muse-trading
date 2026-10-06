@@ -25,10 +25,12 @@ network (except `test_drive.py`, the demo).
 python3 test_drive.py   # live holdings vs QQQ, Yahoo daily bars
 ```
 
-Sample output (2026-10-06) showed the fixed -15% stops are well
-calibrated for SMMT ($14.46 vs $13.98 ATR) and RKLB, but loose for
-INTC ($103.80 vs $94.50 ATR) and CRWD ($197.81 vs $245.02 ATR) —
-evidence for moving the book to ATR-based stops per name.
+Sample output (2026-10-06) showed fixed -15%-style stops landing close
+to ATR-implied levels on some names and far off on others — evidence for
+moving the book to ATR-based stops per name. The demo ships with
+illustrative fixed stops; drop a `fixed_stops.local.json` next to
+`test_drive.py` (gitignored, never pushed) to compare your own book's
+levels.
 
 ## Notes
 
