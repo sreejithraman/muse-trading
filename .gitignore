@@ -1,0 +1,9 @@
+# Real theses carry live position data — never push them.
+# Only EXAMPLE.yaml (fictional) is public.
+packages/thesis/theses/*.yaml
+!packages/thesis/theses/EXAMPLE.yaml
+
+# local runtime junk
+__pycache__/
+*.pyc
+.venv/

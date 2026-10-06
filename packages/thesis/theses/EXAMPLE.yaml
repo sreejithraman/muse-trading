@@ -1,0 +1,46 @@
+# FICTIONAL EXAMPLE — not a real position. Real theses live in this
+# directory locally but are never pushed (see .gitignore). Copy this
+# file to <TICKER>.yaml to start a real one.
+ticker: DEMO
+name: Demo Industries Inc (fictional)
+status: INTACT
+opened: '2026-01-05'
+claim: >
+  Demo Industries is taking share in industrial widgets with its new
+  X-100 line. Q4 earnings (Feb 12) should show the third straight quarter
+  of 20%+ revenue growth; a beat-and-raise would re-rate the stock from
+  12x to 15x forward earnings. The thesis breaks if widget margins
+  compress below 30%.
+kpis:
+  - metric: Q4 revenue growth
+    target: '>= 20% YoY'
+    current: Q3 was +24% YoY
+  - metric: Widget gross margin
+    target: '>= 30%'
+    current: 34% (Q3)
+evidence:
+  - date: '2026-01-08'
+    side: for
+    text: Channel checks suggest X-100 sell-through 15% above plan in December.
+    source: Fictional trade press
+  - date: '2026-01-12'
+    side: against
+    text: Competitor announced a rival widget line shipping in March.
+    source: Fictional competitor PR
+red_lines:
+  - trigger: Close below $85.00 (mechanical stop, -15% from $100.00 blended)
+    action: Exit full position next session, market order
+    price_level: 85.00
+  - trigger: Q4 widget gross margin prints below 30%
+    action: Exit within one session (thesis break)
+key_dates:
+  - date: '2026-02-12'
+    event: Q4 earnings (fictional)
+position:
+  shares: 10
+  blended_cost: 100.00
+  stop: 85.00
+  stop_note: Mechanical -15% from blended
+decisions:
+  - date: '2026-01-05'
+    text: Opened 10 sh @ $100.00 (market) on X-100 share-gain thesis

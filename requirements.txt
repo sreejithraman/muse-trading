@@ -1,0 +1,2 @@
+# muse-trading is stdlib-only except for YAML thesis files.
+PyYAML>=6.0
