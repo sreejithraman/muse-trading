@@ -32,6 +32,27 @@ def _mcp(tool: str, args: dict) -> dict:
     return d["data"]
 
 
+def _mcp_paged(tool: str, args: dict) -> list[dict]:
+    """Follow the cursor until exhausted. get_option_instruments paginates
+    (~100/page); reading only page 1 silently drops most of the chain —
+    that exact bug killed the GRAB call analysis on 2026-10-07."""
+    items, cursor, key = [], None, None
+    for _ in range(50):
+        a = dict(args)
+        if cursor:
+            a["cursor"] = cursor
+        d = _mcp(tool, a)
+        # find the list payload (key varies by tool)
+        if key is None:
+            key = next(k for k, v in d.items()
+                       if isinstance(v, list) and v and isinstance(v[0], dict))
+        items += d[key]
+        cursor = d.get("next")
+        if not cursor:
+            break
+    return items
+
+
 def get_chain(ticker: str) -> dict:
     """Chain id + expiration dates for a ticker."""
     data = _mcp("get_option_chains", {"underlying_symbol": ticker})
@@ -45,10 +66,14 @@ def get_chain(ticker: str) -> dict:
 
 def get_contracts(chain_id: str, expiry: str | None = None,
                   kind: str | None = None) -> list[dict]:
-    """Contracts, optionally filtered by expiry and kind (call/put)."""
-    data = _mcp("get_option_instruments", {"chain_id": chain_id})
+    """Contracts, optionally filtered by expiry and kind (call/put).
+
+    Paginates the full instrument list — the chain is ~300 contracts and
+    the API returns ~100 per page.
+    """
+    instruments = _mcp_paged("get_option_instruments", {"chain_id": chain_id})
     out = []
-    for i in data["instruments"]:
+    for i in instruments:
         if i.get("state") != "active" or i.get("tradability") != "tradable":
             continue
         if expiry and i["expiration_date"] != expiry:
