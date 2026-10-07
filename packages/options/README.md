@@ -12,8 +12,10 @@ Given ticker, kind, strike, expiry, and quoted premium:
   vol into an event?)
 - **Greeks** (delta, gamma, theta/day, vega), **breakeven**,
   **max loss**, theta burn as % of premium per day
+- **Position context**: contract cost as % of account, so sizing is an
+  informed judgment call — no hard cap (removed 2026-10-06; previously
+  10% max)
 - **Guardrails** from the book's standing rules:
-  - premium ≤ 10% of account at cost
   - ≥ 30 DTE unless explicitly flagged event-driven
   - exit at -50% premium or on thesis break (reminder, not automation)
 
@@ -32,6 +34,7 @@ python3 test_drive.py
 
 Illustrative run (2026-10-06, hypothetical $1.50 premium — not a
 trade): SMMT Nov $20 call showed HV 70% vs IV 99% (vol bid into the
-FDA binary), fair value $0.84 vs $1.50 quote, and the 10% guardrail
-firing ($150 > $46 max) — the tool mechanically explains why
-single-leg options don't fit this account size yet.
+FDA binary), fair value $0.84 vs $1.50 quote, and the contract costing
+33% of a $459 account — the sizing call is now judgment, not a rule,
+but a 100%-loss instrument at a third of the account is rarely the
+smart version of aggressive.

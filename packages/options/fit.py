@@ -52,10 +52,8 @@ def fit_check(ticker: str, kind: str, strike: float, expiry: str,
 
     breakeven = strike + premium if kind == "call" else strike - premium
     cost = premium * 100
+    cost_pct = cost / account_value * 100 if account_value else None
     flags = []
-    if cost > account_value * 0.10:
-        flags.append(f"✖ premium ${cost:.0f} > 10% of account "
-                     f"(${account_value * 0.10:.0f} max)")
     if dte < 30 and not event_driven:
         flags.append(f"✖ {dte} DTE < 30-day minimum (not flagged event-driven)")
     if iv and hv and iv > hv * 1.5:
@@ -72,6 +70,7 @@ def fit_check(ticker: str, kind: str, strike: float, expiry: str,
         "breakeven": round(breakeven, 2),
         "breakeven_pct": round((breakeven / s - 1) * 100, 1),
         "max_loss": round(cost, 2),
+        "cost_pct_of_account": round(cost_pct, 1) if cost_pct is not None else None,
         "greeks": g,
         "theta_pct_per_day": round(-g["theta_day"] / premium * 100, 2) if premium else None,
         "flags": flags,
@@ -87,7 +86,8 @@ def report(fc: dict) -> str:
              f"| IV {fc['implied_vol']:.0%} | fair@{fc['hist_vol']:.0%} "
              f"${fc['fair_value_at_hv']:.2f}")
     L.append(f"  breakeven ${fc['breakeven']:.2f} ({fc['breakeven_pct']:+.1f}%) | "
-             f"max loss ${fc['max_loss']:.0f} | cost ${fc['contract_cost']:.0f}")
+             f"max loss ${fc['max_loss']:.0f} | cost ${fc['contract_cost']:.0f} "
+             f"({fc['cost_pct_of_account']}% of account)")
     g = fc["greeks"]
     L.append(f"  delta {g['delta']} | gamma {g['gamma']} | "
              f"theta {g['theta_day']}/day ({fc['theta_pct_per_day']}%/day of premium) | "
