@@ -23,8 +23,13 @@ Full rationale: `~/workspace/research/trading-tools-survey.md` (2026-10-06).
   as universe filter + own scoring (momentum + RVOL + gap + catalyst
   proximity via upcoming-earnings flags). Human stays the final filter;
   edge is catalyst judgment.
-- `packages/analytics` — thin bespoke analytics on the machine-written ledger:
-  win rate by setup, holding-period analysis, MAE/MFE, attribution vs QQQ.
+- `packages/analytics` — **built.** Thin bespoke analytics on the
+  machine-written record: open-position MAE/MFE, holding periods,
+  QQQ-relative attribution; closed-trade win-rate framework (honest
+  about n=0).
+- `packages/options` — **built.** Single-leg fit-checker: Black-Scholes
+  fair value, IV vs HV, Greeks, breakeven, and the book's guardrails
+  (10% max, ≥30 DTE, -50% exit). Evaluates; never trades.
 - `packages/charts` — TradingView lightweight-charts (Apache-2.0) via
   streamlit-lightweight-charts-pro; mplfinance for static PNGs in reports.
   Annotations: entries, stops, targets, thesis events.

@@ -1,0 +1,19 @@
+# Closed trades. One entry per closed position; aggregate rows (flagged)
+# for batches where per-trade cost basis is unavailable.
+#
+# Schema per trade:
+#   ticker, setup, opened, closed, realized_pnl, return_pct (optional),
+#   days_held (optional), notes
+trades:
+  - aggregate: true
+    ticker: MULTI
+    setup: inherited-liquidation
+    opened: inherited
+    closed: '2026-09-18'
+    realized_pnl: -12.80
+    notes: >
+      Day-1 consolidation: 16 inherited small positions exited on
+      2026-09-18 (AVAT +$6.14 the only winner; gross proceeds $240.63).
+      Per-trade cost basis for inherited positions is unavailable, so
+      this is one aggregate row, excluded from win-rate math. Not a
+      strategy signal — a one-time cleanup.
