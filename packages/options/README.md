@@ -38,3 +38,16 @@ FDA binary), fair value $0.84 vs $1.50 quote, and the contract costing
 33% of a $459 account — the sizing call is now judgment, not a rule,
 but a 100%-loss instrument at a third of the account is rarely the
 smart version of aggressive.
+
+## Live chains (`chains.py`)
+
+`get_chain` → `get_contracts` → `get_quotes` via the Robinhood MCP
+(broker quotes = truth). `chain_snapshot(ticker, expiry, kind)` returns
+contracts with bid/ask/mark/IV/volume/OI. `fit_from_chain(...)` in fit.py
+runs the full fit-check on the live ask and adds liquidity flags (wide
+spread >10% of mark, OI+volume <10).
+
+Live example 2026-10-07: GRAB's chain has no strikes above $2.00, IV
+239% vs HV 42%, 32% spreads, OI <10 — the chain itself killed the
+"small defined-risk call" idea. Shares or pass. That's the module
+earning its keep.

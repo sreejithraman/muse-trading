@@ -11,11 +11,16 @@ import json
 import urllib.request
 from datetime import datetime, timezone
 
+from cache import cached
 
-def fetch_daily(symbol: str, range_: str = "6mo") -> list[dict]:
-    """Daily bars, oldest first. Keys: date, open, high, low, close, volume."""
+DAILY_TTL = 900      # today's daily bar still moves
+INTRADAY_TTL = 300   # 5m bars during the session
+
+
+def _fetch(symbol: str, interval: str, range_: str) -> list[dict]:
+    """Raw Yahoo v8 fetch. Keys: ts (epoch), open, high, low, close, volume."""
     url = (f"https://query1.finance.yahoo.com/v8/finance/chart/{symbol}"
-           f"?interval=1d&range={range_}")
+           f"?interval={interval}&range={range_}")
     req = urllib.request.Request(
         url, headers={"User-Agent": "Mozilla/5.0 (X11; Linux x86_64)"})
     with urllib.request.urlopen(req, timeout=30) as r:
@@ -33,11 +38,32 @@ def fetch_daily(symbol: str, range_: str = "6mo") -> list[dict]:
             if None in (o, h, l, c):
                 continue
             bars.append({
-                "date": datetime.fromtimestamp(t, timezone.utc).date().isoformat(),
+                "date": datetime.fromtimestamp(t, timezone.utc).isoformat(),
                 "open": o, "high": h, "low": l, "close": c, "volume": v})
         except (TypeError, IndexError):
             continue
     return bars
+
+
+def fetch_daily(symbol: str, range_: str = "6mo") -> list[dict]:
+    """Daily bars, oldest first (date-only timestamps). Cached 15 min."""
+    bars = cached(f"bars:{symbol}:1d:{range_}", DAILY_TTL,
+                  lambda: _fetch(symbol, "1d", range_))
+    return [{**b, "date": b["date"][:10]} for b in bars]
+
+
+def fetch_intraday(symbol: str, interval: str = "5m",
+                   range_: str = "5d") -> list[dict]:
+    """Intraday bars (full ISO timestamps), oldest first. Cached 5 min.
+
+    Yahoo serves 1m for ~1d, 5m/15m for ~5d. Use for precise MAE/MFE,
+    session RVOL, and same-day excursion — daily highs/lows are only
+    an approximation once a position is open.
+    """
+    if interval not in ("1m", "5m", "15m", "30m", "1h"):
+        raise ValueError(f"unsupported intraday interval: {interval}")
+    return cached(f"bars:{symbol}:{interval}:{range_}", INTRADAY_TTL,
+                  lambda: _fetch(symbol, interval, range_))
 
 
 def last_close(symbol: str) -> float | None:

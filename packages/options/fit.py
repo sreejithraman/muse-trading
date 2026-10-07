@@ -96,3 +96,36 @@ def report(fc: dict) -> str:
         L.append(f"  {f}")
     L.append(f"  exit rule: {fc['exit_rule']}")
     return "\n".join(L)
+
+
+def fit_from_chain(ticker: str, kind: str, strike: float, expiry: str,
+                   account_value: float, event_driven: bool = False,
+                   side: str = "ask") -> dict:
+    """Fit-check on a LIVE broker quote: pulls the chain, takes the bid or
+    ask (default ask — what you'd actually pay), and runs fit_check.
+
+    Raises if the contract isn't quoted (stale/illiquid chain).
+    """
+    from chains import chain_snapshot  # noqa: E402
+    snap = chain_snapshot(ticker, expiry, kind)
+    match = [c for c in snap if abs(c["strike"] - strike) < 1e-9]
+    if not match:
+        raise ValueError(f"no {kind} ${strike:g} in {ticker} {expiry} chain")
+    q = match[0]["quote"]
+    premium = q.get(side)
+    if not premium:
+        raise ValueError(f"{ticker} {kind} ${strike:g} {expiry}: no {side} quote")
+    fc = fit_check(ticker, kind, strike, expiry, premium, account_value,
+                   event_driven=event_driven)
+    fc["quoted_side"] = side
+    fc["quoted_bid"] = q.get("bid")
+    fc["quoted_mark"] = q.get("mark")
+    fc["quoted_iv_broker"] = q.get("iv")
+    fc["quoted_oi"] = q.get("open_interest")
+    fc["quoted_volume"] = q.get("volume")
+    spread = (q["ask"] - q["bid"]) / q["mark"] if q.get("ask") and q.get("bid") and q.get("mark") else None
+    if spread and spread > 0.10:
+        fc["flags"].append(f"⚠ wide spread {spread:.0%} of mark — illiquid chain")
+    if (q.get("open_interest") or 0) < 10 and (q.get("volume") or 0) < 10:
+        fc["flags"].append("⚠ OI < 10 and volume < 10 — expect slippage")
+    return fc
