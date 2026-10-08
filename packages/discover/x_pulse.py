@@ -10,6 +10,7 @@ Each query bills against the user's Grok subscription quota, not API credits.
 """
 from __future__ import annotations
 
+import json
 import subprocess
 from datetime import date
 from pathlib import Path
@@ -46,11 +47,18 @@ def pulse(section: str, timeout_s: int = 180) -> str:
               f"Begin your response directly with the markdown list of results. "
               f"No preamble, no explanation of your search process.")
     out = subprocess.run(
-        [GROK, "-p", prompt],
+        # --yolo: headless runs cancel web_fetch approvals otherwise, which
+        # starves the agent of post contents (flow accounts post images) and
+        # leaves only narration in the result. Always-approve is the documented
+        # mode for scripts/agent servers; the prompt keeps the task narrow.
+        [GROK, "--yolo", "--output-format", "json", "-p", prompt],
         capture_output=True, text=True, timeout=timeout_s)
     if out.returncode != 0:
         raise RuntimeError(f"grok -p failed: {out.stderr[:300]}")
-    return out.stdout.strip()
+    try:
+        return json.loads(out.stdout).get("text", "").strip()
+    except (json.JSONDecodeError, AttributeError):
+        return out.stdout.strip()
 
 
 def digest(out_dir: str | Path | None = None) -> Path:
@@ -63,7 +71,8 @@ def digest(out_dir: str | Path | None = None) -> Path:
     parts = [f"# X pulse — {today}", ""]
     for section in ("flow", "catalysts", "news"):
         try:
-            body = pulse(section)
+            # flow scans 6 handles and now fetches post contents; give it room
+            body = pulse(section, timeout_s=300 if section == "flow" else 180)
         except Exception as e:  # noqa: BLE001 — one failed pulse shouldn't kill the digest
             body = f"_pulse failed: {e}_"
         parts += [f"## {section}", "", body, ""]
