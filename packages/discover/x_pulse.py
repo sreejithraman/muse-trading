@@ -42,7 +42,9 @@ def pulse(section: str, timeout_s: int = 180) -> str:
     """Run one headless Grok query, return raw text."""
     handles = " ".join(f"@{h}" for h in HANDLES[section])
     prompt = (f"Search X for posts from these accounts in the last 24 hours: "
-              f"{handles}. {QUERIES[section]}")
+              f"{handles}. {QUERIES[section]} "
+              f"Begin your response directly with the markdown list of results. "
+              f"No preamble, no explanation of your search process.")
     out = subprocess.run(
         [GROK, "-p", prompt],
         capture_output=True, text=True, timeout=timeout_s)
