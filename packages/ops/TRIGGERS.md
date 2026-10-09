@@ -28,9 +28,12 @@ The woken agent runs `checkin.py --mode light`, triages news on flagged names
 (breach on real news ≠ breach on noise), and then:
 
 - `act` → verify, then act under circuit-breaker + standing trading authority;
-  report what was done in the what/why/exposure/next shape.
-- `alert` → surface to chat only if it needs the user's eyes; otherwise log
-  and stand down.
+  report what was done in the what/why/exposure/next shape. Standing authority
+  means decide-and-act, then report — never message the user to ask whether to
+  act. The only pre-action messages: the needed action is outside standing
+  authority, or order placement is technically blocked.
+- `alert` → ambiguous: log and stand down silently unless it needs reporting
+  after the fact. Do not ask the user what to do.
 - `quiet` → stay silent.
 
 ## 3. Discretionary one-offs
