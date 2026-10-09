@@ -53,3 +53,23 @@ crons, never new recurring schedules, and they die after firing.
   checked by the sessions.
 - The falsification clause for adding a midday check is retired — the check
   now exists.
+
+## Data failures are not "quiet"
+
+`checkin.py` emits verdict `unknown` (with `data_quality: degraded/none`)
+when quotes can't be fetched for a holding. Unknown is never a clean bill
+of health — a blind read reported as "all clear" would be this system
+becoming the "just words" it was built to replace.
+
+- Never treat `unknown` as `quiet`. Never report "all clear" on a blind read.
+- The agent must retry once via the alternate quote source (the hook uses
+  Yahoo; `checkin.py` uses Robinhood MCP). If the book still can't be
+  checked, the outage itself becomes the finding: log it, and include it in
+  the next user-facing report as a machinery failure. That is report-worthy,
+  not silent.
+- Resting native orders still protect the book during a data outage — they
+  don't depend on this system.
+- The `circuit-watch` hook reports `quotes unavailable` (with a consecutive-
+  failure streak) instead of `all clear` when Yahoo returns no quotes during
+  market hours, so an outage is visible in the hook log rather than
+  masquerading as a clean check.

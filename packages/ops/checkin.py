@@ -2,9 +2,13 @@
 """Unified position check-in: the one routine every session and alert uses.
 
 Loads thesis red lines, pulls live quotes, and emits a verdict per holding:
-  act    - price at or below a price red line (thesis says exit/decide NOW)
-  alert  - within 2% above a red line, or intraday move <= -5% (needs triage)
-  quiet  - everything else
+  act     - price at or below a price red line (thesis says exit/decide NOW)
+  alert   - within 2% above a red line, or intraday move <= -5% (needs triage)
+  quiet   - checked, everything within bounds
+  unknown - quotes unavailable for this holding (data failure, NOT a clean bill)
+
+`data_quality` is ok / degraded / none depending on how many symbols got
+quotes. A blind read must never be reported as "all clear" — see TRIGGERS.md.
 
 Modes:
   --mode light   quotes + red lines + verdict        (midday check, hook worker)
@@ -67,7 +71,7 @@ def evaluate() -> dict:
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
     holdings = []
     worst = "quiet"
-    rank = {"quiet": 0, "alert": 1, "act": 2}
+    rank = {"quiet": 0, "unknown": 1, "alert": 2, "act": 3}
 
     for t in theses:
         q = quotes.get(t.ticker, {})
@@ -75,7 +79,9 @@ def evaluate() -> dict:
         prev = q.get("prev_close")
         verdict, reasons = "quiet", []
         dist = {}
-        if px:
+        if not px:
+            verdict, reasons = "unknown", ["quote fetch failed"]
+        else:
             for rl in t.red_lines:
                 if rl.price_level:
                     d = (px / rl.price_level - 1) * 100
@@ -102,8 +108,12 @@ def evaluate() -> dict:
         if rank[verdict] > rank[worst]:
             worst = verdict
 
+    got = sum(1 for h in holdings if h["price"] is not None)
+    data_quality = "ok" if got == len(holdings) else ("degraded" if got else "none")
+
     return {"as_of_utc": now, "date": date.today().isoformat(),
-            "overall": worst, "holdings": holdings}
+            "overall": worst, "data_quality": data_quality,
+            "holdings": holdings}
 
 
 def main() -> int:
