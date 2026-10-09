@@ -71,8 +71,8 @@ def digest(out_dir: str | Path | None = None) -> Path:
     parts = [f"# X pulse — {today}", ""]
     for section in ("flow", "catalysts", "news"):
         try:
-            # flow scans 6 handles and now fetches post contents; give it room
-            body = pulse(section, timeout_s=300 if section == "flow" else 180)
+            # flow scans 6 handles and fetches post contents; catalysts also heavy
+            body = pulse(section, timeout_s=300 if section in ("flow", "catalysts") else 180)
         except Exception as e:  # noqa: BLE001 — one failed pulse shouldn't kill the digest
             body = f"_pulse failed: {e}_"
         parts += [f"## {section}", "", body, ""]
