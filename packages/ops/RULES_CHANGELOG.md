@@ -1,0 +1,95 @@
+# Rule change log
+
+The operation's rules are hypotheses, not fixtures. When a rule changes,
+record it here: date, what changed, why, and how we'll know whether the new
+one earned its place. A rule that changed without a written reason is just a
+mood — the QQQ ledger judges whether the change worked, over subsequent
+weeks of session scoring and attribution, not over one trade.
+
+Newest entries go at the top.
+
+---
+
+## 2026-10-11 — Rules are for contemplation; proactive improvement latitude
+
+- **What:** Rules are hypotheses to question and evolve, never fixtures. Mu$e
+  may make genuine improvements to the trading strategy, tools, and idea
+  collection — or unship areas that aren't working — without per-change
+  permission; changes aren't forced, and Sreejith is told when one is made.
+- **Why:** Sreejith: "Existing rules are there for contemplation and are not
+  set in stone. Better ideas or strategies can change rules." Same day: MAE/MFE
+  is decision-only, not a report — analytics exist for Mu$e's judgment, not
+  for telling the user.
+- **Judged by:** whether rule changes from here on are written down with
+  reasons (this file) and scored against QQQ — ruthless scorekeeping, not
+  ceremony.
+
+## 2026-10-09 — Unified check-in system; act under standing authority
+
+- **What:** One routine (`checkin.py`), three trigger modes: scheduled (9:40
+  full, 12:30 light), alert-driven (`circuit-watch` polling quotes every
+  15 min market-hours against a daily watchlist), discretionary one-offs.
+  Tripwires in `TRIGGERS.md`. Retired the midday-check falsification clause.
+- **Why:** Sreejith: a rule without machinery is just words — the
+  circuit-breaker needed real machinery, not a sentence. Then corrected the
+  design: "Why ping me? You have autonomy to trade and act right?" → when a
+  tripwire fires, decide and act under standing authority, then report in the
+  what/why/exposure shape. Ping before acting only for things outside
+  authority (account changes, new permissions) or blocked order placement.
+- **Judged by:** whether breaches get acted on same-session vs. discovered at
+  close review; whether user ever receives a "should I sell?" message again.
+
+## 2026-10-08 — Order type is dynamic per-trade judgment; standing defensive posture
+
+- **What:** Order type is no longer a fixed rule — market when fill certainty
+  matters more than pennies, limit when spread/chasing risk dominates. Native
+  stops, take-profits, and sell limits used defensively as the situation
+  needs: scale out of runaway winners into strength, ratchet stops up behind
+  winners, trim oversized positions. First exercise: a native INTC stop placed
+  the same evening.
+- **Why:** Sreejith: "doesn't have to be a single rule" — replaced the
+  market-default rigidity with discretion; then explicitly authorized the
+  defensive posture (sell limits named). The 9/21 INTC $114 limit that never
+  filled when the price ran was the lesson behind the original default.
+- **Judged by:** fill reliability on entries vs. spread cost; whether defensive
+  exits preserve gains without chopping the book on noise.
+
+## 2026-10-07 — Circuit-breaker rule
+
+- **What:** If a holding breaks a red line violently intraday (stop level or
+  >5% adverse move on news), act or surface it immediately rather than
+  waiting for the 3:50 PM close review.
+- **Why:** Sreejith pushed for midday decisions — waiting for the close
+  review on a violent break is just words.
+- **Judged by:** superseded by the 10/9 machinery; the rule earned its place
+  the day it forced the check-in system to exist.
+
+## 2026-10-06 — Removed the 10% of account cap on option positions
+
+- **What:** Options sized on judgment now ("trade smartly"). Remaining
+  guardrails: Level 2 only, ≥30 DTE unless deliberately event-driven, exit
+  at −50% premium or on thesis break, covered calls only on keepers,
+  same-name equity+option exposure counted together.
+- **Why:** Sreejith removed the cap himself after the $1,500 deposit made
+  the options program real (~$1,957 capital, 2–3 defined-risk positions
+  viable); a cap at this size was preventing the program, not protecting it.
+- **Judged by:** single-contract full loss as the sizing discipline; QQQ
+  attribution on the options sleeve.
+
+## 2026-09-28 — 10% cash buffer: hard rule → guideline
+
+- **What:** Keep cash smartly, but deploy it when a genuine entry-bar idea
+  appears.
+- **Why:** Sreejith: a floor that's never touched is just a drag.
+- **Judged by:** whether deployed cash beats QQQ over the subsequent quarter.
+
+## 2026-09-21 — Market orders as the default
+
+- **What:** Market orders for all entries/exits; limit orders only for narrow
+  exceptions (extended-hours sessions where markets aren't permitted,
+  illiquid names where spread risk exceeds non-fill risk, or explicitly
+  documented price-discipline entries).
+- **Why:** The INTC $114 price-discipline limit simply didn't fill when the
+  price ran — non-fill is the cost of a limit.
+- **Judged by:** superseded by the 10/8 dynamic-judgment rule; earned its
+  place by stopping repeat non-fill misses in between.
