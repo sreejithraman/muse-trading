@@ -4,9 +4,10 @@ Uses the grok CLI (subscription OAuth, no API key) in headless single-turn
 mode. The x_search tool is exposed through the subscription proxy —
 verified 2026-10-07: real posts with timestamps and links returned.
 
-Runs 3 queries (flow / catalysts / news) over vetted handles from the
-idea-discovery research. Output: markdown digest the morning session reads.
-Each query bills against the user's Grok subscription quota, not API credits.
+Runs 4 queries (flow / catalysts / news / trending) over vetted handles from
+the idea-discovery research, plus an open-ended trending sweep. Output:
+markdown digest the morning session reads. Each query bills against the
+user's Grok subscription quota, not API credits.
 """
 from __future__ import annotations
 
@@ -36,14 +37,27 @@ QUERIES = {
     "news": ("Breaking market-moving headlines in the last 24 hours: "
              "single-stock news, macro, unusual insider buying posts. "
              "List the 5 most significant with post links."),
+    # Open-ended sweep beyond the vetted panel (added 2026-10-11): catches
+    # crowded trades / viral DD the handle list misses. Substance filter in
+    # the prompt keeps meme/pump chatter out; the morning session still vets
+    # everything against the entry bar before it becomes an idea.
+    "trending": ("The most-discussed tickers and trading topics on X in the "
+                 "last 24 hours: unusual retail or institutional attention, "
+                 "viral due-diligence threads, crowded trades forming. "
+                 "Substance filter: skip pure meme/pump chatter with no news "
+                 "hook, unusual volume, or verifiable catalyst. "
+                 "List the 5 most significant with tickers, why each is "
+                 "trending, and post links."),
 }
 
 
 def pulse(section: str, timeout_s: int = 180) -> str:
     """Run one headless Grok query, return raw text."""
-    handles = " ".join(f"@{h}" for h in HANDLES[section])
-    prompt = (f"Search X for posts from these accounts in the last 24 hours: "
-              f"{handles}. {QUERIES[section]} "
+    handles = HANDLES.get(section)
+    scope = (f"posts from these accounts in the last 24 hours: "
+             f"{' '.join(f'@{h}' for h in handles)}" if handles else
+             "posts across trading/finance X in the last 24 hours")
+    prompt = (f"Search X for {scope}. {QUERIES[section]} "
               f"Begin your response directly with the markdown list of results. "
               f"No preamble, no explanation of your search process.")
     out = subprocess.run(
@@ -62,17 +76,18 @@ def pulse(section: str, timeout_s: int = 180) -> str:
 
 
 def digest(out_dir: str | Path | None = None) -> Path:
-    """Run all three pulses, write dated markdown digest. Returns path."""
+    """Run all four pulses, write dated markdown digest. Returns path."""
     out_dir = Path(out_dir or Path.home() / "workspace/goals/"
                    "agentic-account-trading-operation/hidden_files")
     out_dir.mkdir(parents=True, exist_ok=True)
     today = date.today().isoformat()
     path = out_dir / f"x-pulse-{today}.md"
     parts = [f"# X pulse — {today}", ""]
-    for section in ("flow", "catalysts", "news"):
+    for section in ("flow", "catalysts", "news", "trending"):
         try:
-            # flow scans 6 handles and fetches post contents; catalysts also heavy
-            body = pulse(section, timeout_s=300 if section in ("flow", "catalysts") else 180)
+            # flow scans 6 handles and fetches post contents; catalysts and
+            # the open-ended trending sweep are also heavy
+            body = pulse(section, timeout_s=300 if section in ("flow", "catalysts", "trending") else 180)
         except Exception as e:  # noqa: BLE001 — one failed pulse shouldn't kill the digest
             body = f"_pulse failed: {e}_"
         parts += [f"## {section}", "", body, ""]
