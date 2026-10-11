@@ -51,8 +51,8 @@ QUERIES = {
 }
 
 
-def pulse(section: str, timeout_s: int = 180) -> str:
-    """Run one headless Grok query, return raw text."""
+def pulse(section: str, timeout_s: int = 180) -> tuple[str, dict]:
+    """Run one headless Grok query. Returns (text, usage dict)."""
     handles = HANDLES.get(section)
     scope = (f"posts from these accounts in the last 24 hours: "
              f"{' '.join(f'@{h}' for h in handles)}" if handles else
@@ -70,9 +70,10 @@ def pulse(section: str, timeout_s: int = 180) -> str:
     if out.returncode != 0:
         raise RuntimeError(f"grok -p failed: {out.stderr[:300]}")
     try:
-        return json.loads(out.stdout).get("text", "").strip()
+        data = json.loads(out.stdout)
+        return (data.get("text") or "").strip(), data.get("usage") or {}
     except (json.JSONDecodeError, AttributeError):
-        return out.stdout.strip()
+        return out.stdout.strip(), {}
 
 
 def digest(out_dir: str | Path | None = None) -> Path:
@@ -83,15 +84,30 @@ def digest(out_dir: str | Path | None = None) -> Path:
     today = date.today().isoformat()
     path = out_dir / f"x-pulse-{today}.md"
     parts = [f"# X pulse — {today}", ""]
+    usage_log: dict = {}
     for section in ("flow", "catalysts", "news", "trending"):
         try:
             # flow scans 6 handles and fetches post contents; catalysts and
             # the open-ended trending sweep are also heavy
-            body = pulse(section, timeout_s=300 if section in ("flow", "catalysts", "trending") else 180)
+            body, usage = pulse(section, timeout_s=300 if section in ("flow", "catalysts", "trending") else 180)
+            usage_log[section] = {
+                "input_tokens": usage.get("input_tokens"),
+                "output_tokens": usage.get("output_tokens"),
+                "total_cost_usd": usage.get("total_cost_usd"),
+            }
         except Exception as e:  # noqa: BLE001 — one failed pulse shouldn't kill the digest
             body = f"_pulse failed: {e}_"
+            usage_log[section] = {"error": str(e)[:120]}
         parts += [f"## {section}", "", body, ""]
     path.write_text("\n".join(parts))
+    # Quota burn log (private — lives next to the digests, never synced to
+    # the public repo): one JSON line per run so we can watch subscription
+    # usage as sections are added.
+    try:
+        with open(out_dir / "x-pulse-usage.jsonl", "a") as f:
+            f.write(json.dumps({"date": today, "usage": usage_log}) + "\n")
+    except Exception:
+        pass
     return path
 
 
