@@ -10,6 +10,12 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-12 (evening) — SMMT $14.46 pre-committed through PDUFA (rules audit)
+
+- **What:** SMMT's $14.46 mechanical close-stop suspended through Fri 11/13 — the final close before the Sat 11/14 FDA PDUFA on ivonescimab. Found in the audit Sreejith asked for after the ARWR rewrite: a binary name where a mechanical line and a binary event would otherwise collide. The PDUFA outcome is already SMMT's thesis-break red line, so it becomes the trigger; suspension lapses automatically.
+- **Why:** Same principle as ARWR, applied in advance while calm instead of discovered on 11/13. Thesis-break exits never pause.
+- **Judged by:** whether the PDUFA-week handling is clean; QQQ ledger.
+
 ## 2026-10-12 — ARWR $60 rule rewritten (judgment pause through webinar); near-tripwire checklist adopted
 
 - **What:** ARWR's $60 close-based exit suspended Tue 10/13 through Wed 10/14 — webinar Wed 2:30 PM ET (interim ARO-MAPT data) is the most informative event on its calendar. Weak/bad data → exit Thu 10/15 regardless of price; good data → $60 line re-arms. Machinery: `RedLine` gained `suspended_until` (lapses automatically, revision recorded in the thesis decisions log); `checkin.py` and the hook honor it; the hook still watches ARWR for -5% intraday drops. Also adopted the near-tripwire judgment checklist into the morning session: for any holding within 5% of a red line, five questions in writing before the trigger — (1) what changed since the rule was set, (2) stock-specific or tape, (3) event binary-ness, (4) book pressure, (5) honest-broker test. Output: honor or rewrite with reasons. Thesis-break exits are never paused; no silent waivers.
