@@ -10,6 +10,12 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-12 (evening) — Weekly catalyst sweep built (Oct 7 cadence promise completed)
+
+- **What:** New `discovery-catalyst-sweep` cron, Sundays ~6:52 PM ET: week-ahead catalyst calendar — holdings' key_dates (verified within 14 days, YAML corrected if wrong), market-wide events (earnings, FDA/PDUFA, macro), and a collision check flagging mechanical lines within 10% with a binary inside 21 days. Writes to hidden_files; briefs chat with the top 3–5 events.
+- **Why:** The Oct 7 idea cadence promised a weekly catalyst sweep; the audit found it (plus bi-weekly short interest, quarterly 13Fs) was never built — rule without machinery. Event dates were being hand-tracked (ARWR webinar, SMMT PDUFA, GRAB earnings).
+- **Judged by:** whether Monday sessions start using it and collisions get caught before they matter.
+
 ## 2026-10-12 (evening) — SMMT $14.46 pre-committed through PDUFA (rules audit)
 
 - **What:** SMMT's $14.46 mechanical close-stop suspended through Fri 11/13 — the final close before the Sat 11/14 FDA PDUFA on ivonescimab. Found in the audit Sreejith asked for after the ARWR rewrite: a binary name where a mechanical line and a binary event would otherwise collide. The PDUFA outcome is already SMMT's thesis-break red line, so it becomes the trigger; suspension lapses automatically.
