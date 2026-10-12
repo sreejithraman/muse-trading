@@ -10,6 +10,12 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-12 — ARWR $60 rule rewritten (judgment pause through webinar); near-tripwire checklist adopted
+
+- **What:** ARWR's $60 close-based exit suspended Tue 10/13 through Wed 10/14 — webinar Wed 2:30 PM ET (interim ARO-MAPT data) is the most informative event on its calendar. Weak/bad data → exit Thu 10/15 regardless of price; good data → $60 line re-arms. Machinery: `RedLine` gained `suspended_until` (lapses automatically, revision recorded in the thesis decisions log); `checkin.py` and the hook honor it; the hook still watches ARWR for -5% intraday drops. Also adopted the near-tripwire judgment checklist into the morning session: for any holding within 5% of a red line, five questions in writing before the trigger — (1) what changed since the rule was set, (2) stock-specific or tape, (3) event binary-ness, (4) book pressure, (5) honest-broker test. Output: honor or rewrite with reasons. Thesis-break exits are never paused; no silent waivers.
+- **Why:** Sreejith challenged the rule and it didn't survive: its premise ("weakest name, no catalyst") is stale post-STAR-entry; $60 is a round number, not a fundamental level; a stop firing on noise the day before the most informative event is badly designed. Judgment belongs in rule revision (written, reasoned, time-bounded) — not in waiving triggers.
+- **Judged by:** whether Thursday's data call is made cleanly and the re-armed rule holds; QQQ ledger over subsequent weeks.
+
 ## 2026-10-12 — Hook respects close-based red lines; EXITED theses excluded from check-ins
 
 - **What:** (1) The `circuit-watch` hook no longer fires intraday *approach* alerts for close-based red lines (ARWR's $60) — only the closing print is actionable there, so the approach wake was pure noise. Breach alerts still fire. Red lines carry a machine-readable `close_based` flag from the thesis YAML through `checkin.py --emit-watchlist` to the hook. (2) `checkin.py` now skips EXITED theses in both `--mode` evaluation and watchlist emission — INTC kept producing a stale `act` verdict after its exit.

@@ -35,6 +35,9 @@ class RedLine:
     price_level: float | None = None  # numeric level when trigger is price-based
     close_based: bool = False  # True: only the closing print matters (e.g. ARWR $60);
                                # intraday touches are not actionable
+    suspended_until: str | None = None  # YYYY-MM-DD: line ignored while today <= this date
+                               # (judgment pause, e.g. through a binary catalyst);
+                               # lapses automatically; the revision lives in decisions[]
 
 
 @dataclass
@@ -55,6 +58,7 @@ class Position:
 class Decision:
     date: str
     text: str
+    source: str = ""  # where the decision came from (session, chat, hook)
 
 
 @dataclass

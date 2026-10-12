@@ -81,10 +81,16 @@ def evaluate() -> dict:
         prev = q.get("prev_close")
         verdict, reasons = "quiet", []
         dist = {}
+        today_iso = date.today().isoformat()
+        # Judgment pauses: a red line with suspended_until >= today is ignored
+        # here (its revision lives in the thesis decisions log). Thesis-break
+        # (non-price) triggers are never paused — only mechanical price levels.
+        active_rls = [rl for rl in t.red_lines
+                      if not (rl.suspended_until and rl.suspended_until >= today_iso)]
         if not px:
             verdict, reasons = "unknown", ["quote fetch failed"]
         else:
-            for rl in t.red_lines:
+            for rl in active_rls:
                 if rl.price_level:
                     d = (px / rl.price_level - 1) * 100
                     dist[rl.trigger[:48]] = round(d, 2)
@@ -126,15 +132,18 @@ def main() -> int:
 
     if args.emit_watchlist:
         theses = [t for t in load_all() if t.status != "EXITED"]
+        today_iso = date.today().isoformat()
         levels = []
         for t in theses:
             pls = sorted({(rl.price_level, rl.close_based) for rl in t.red_lines
-                          if rl.price_level})
-            if pls:
-                levels.append({"symbol": t.ticker,
-                               "red_lines": [{"level": p, "close_based": cb}
-                                             for p, cb in pls],
-                               "warn_pct": ALERT_PCT, "drop_pct": DROP_PCT})
+                          if rl.price_level
+                          and not (rl.suspended_until and rl.suspended_until >= today_iso)})
+            # Emit the level even with no active red lines: the hook's -5%
+            # drop tripwire is symbol-level and must keep watching the name.
+            levels.append({"symbol": t.ticker,
+                           "red_lines": [{"level": p, "close_based": cb}
+                                         for p, cb in pls],
+                           "warn_pct": ALERT_PCT, "drop_pct": DROP_PCT})
         Path(args.emit_watchlist).parent.mkdir(parents=True, exist_ok=True)
         Path(args.emit_watchlist).write_text(json.dumps(
             {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
