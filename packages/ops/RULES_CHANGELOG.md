@@ -10,6 +10,12 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-12 — Hook respects close-based red lines; EXITED theses excluded from check-ins
+
+- **What:** (1) The `circuit-watch` hook no longer fires intraday *approach* alerts for close-based red lines (ARWR's $60) — only the closing print is actionable there, so the approach wake was pure noise. Breach alerts still fire. Red lines carry a machine-readable `close_based` flag from the thesis YAML through `checkin.py --emit-watchlist` to the hook. (2) `checkin.py` now skips EXITED theses in both `--mode` evaluation and watchlist emission — INTC kept producing a stale `act` verdict after its exit.
+- **Why:** A 10:40 ET hook wake on ARWR approach produced no actionable information (triaged and stood down); the worker correctly identified it as a false-positive class. Separately, the same wake surfaced the stale INTC verdict.
+- **Judged by:** fewer no-op wakes in the hook log; no recurrence of stale verdicts on exited positions.
+
 ## 2026-10-11 — Rules are for contemplation; proactive improvement latitude
 
 - **What:** Rules are hypotheses to question and evolve, never fixtures. Mu$e
@@ -93,3 +99,21 @@ Newest entries go at the top.
   price ran — non-fill is the cost of a limit.
 - **Judged by:** superseded by the 10/8 dynamic-judgment rule; earned its
   place by stopping repeat non-fill misses in between.
+
+## 2026-10-12 — Friday close-review: explicit native-stop weekend-coverage check
+
+- **What:** The close-review session now carries an explicit checklist item:
+  for every native stop / take-profit order that is the defense for a
+  near-term tripwire, verify it will still be resting through the weekend
+  (day/gfd orders placed Mon–Fri can expire Friday evening, leaving the
+  weekend gap unguarded); re-place as needed for Monday morning coverage.
+- **Why:** The INTC protective stop (stop-market, gfd, placed 10/8)
+  expired Friday evening, so INTC gapped through the stop level over the
+  weekend with no native order to catch it — the 15-minute circuit tripwire
+  caught it at Monday's open (market exit near the mechanical -15%). The
+  machinery worked, but the native layer that was supposed to be fastest was
+  silently absent for 60 hours. A rule with a resting order is only real if
+  the order is actually resting.
+- **Judged by:** whether the next weekend gap near a tripwire is caught by a
+  resting native order rather than the tripwire; the Friday close-review log
+  should show the coverage check explicitly.

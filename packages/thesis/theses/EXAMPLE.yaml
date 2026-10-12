@@ -31,6 +31,8 @@ red_lines:
   - trigger: Close below $85.00 (mechanical stop, -15% from $100.00 blended)
     action: Exit full position next session, market order
     price_level: 85.00
+    # close_based: true  # uncomment when only the closing print matters —
+                        # the hook then skips intraday approach alerts for it
   - trigger: Q4 widget gross margin prints below 30%
     action: Exit within one session (thesis break)
 key_dates:

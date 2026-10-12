@@ -65,7 +65,9 @@ def fetch_quotes(tickers: list[str]) -> dict[str, dict]:
 
 
 def evaluate() -> dict:
-    theses = load_all()
+    # EXITED theses are history, not positions: scoring them produces stale
+    # verdicts (e.g. INTC firing `act` after the 2026-10-12 exit).
+    theses = [t for t in load_all() if t.status != "EXITED"]
     tickers = [t.ticker for t in theses]
     quotes = fetch_quotes(tickers)
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -123,12 +125,15 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.emit_watchlist:
-        theses = load_all()
+        theses = [t for t in load_all() if t.status != "EXITED"]
         levels = []
         for t in theses:
-            pls = sorted({rl.price_level for rl in t.red_lines if rl.price_level})
+            pls = sorted({(rl.price_level, rl.close_based) for rl in t.red_lines
+                          if rl.price_level})
             if pls:
-                levels.append({"symbol": t.ticker, "red_lines": pls,
+                levels.append({"symbol": t.ticker,
+                               "red_lines": [{"level": p, "close_based": cb}
+                                             for p, cb in pls],
                                "warn_pct": ALERT_PCT, "drop_pct": DROP_PCT})
         Path(args.emit_watchlist).parent.mkdir(parents=True, exist_ok=True)
         Path(args.emit_watchlist).write_text(json.dumps(

@@ -33,6 +33,8 @@ class RedLine:
     trigger: str         # human-readable trigger
     action: str          # what to do when it fires
     price_level: float | None = None  # numeric level when trigger is price-based
+    close_based: bool = False  # True: only the closing print matters (e.g. ARWR $60);
+                               # intraday touches are not actionable
 
 
 @dataclass
