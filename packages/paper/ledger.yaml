@@ -1,0 +1,9 @@
+entries:
+- ticker: NANC
+  flagged: '2026-10-13'
+  thesis: "Congressional buy-and-hold compounders \u2014 the disclosure-momentum interest\
+    \ as buy-and-hold (2026-10-13 chat)"
+  ref_price: 52.73
+  ref_qqq: 741.56
+  ref_date: '2026-10-13'
+  status: tracking
