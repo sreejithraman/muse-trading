@@ -8,6 +8,12 @@ Runs 4 queries (flow / catalysts / news / trending) over vetted handles from
 the idea-discovery research, plus an open-ended trending sweep. Output:
 markdown digest the morning session reads. Each query bills against the
 user's Grok subscription quota, not API credits.
+
+Handle curation is owned by Mu$e (standing direction 2026-10-12): nominate
+promising accounts to CANDIDATES as they surface (flagged posts, trending
+sweep, own research); promote to vetted on sustained rule-ins over ~2-4
+weeks; cut vetted handles that go stale or noisy. Changes reported, not
+asked.
 """
 from __future__ import annotations
 
