@@ -27,6 +27,18 @@ HANDLES = {
     "news": ["FirstSquawk", "LiveSquawk", "Stocktwits", "QuiverQuant"],
 }
 
+# Candidate handles under evaluation (nominated from posts Sreejith flags).
+# Candidates ride along in their section's scope at no extra query cost.
+# Promotion to vetted needs a sustained hit rate over ~2-4 weeks — the morning
+# session notes which candidates produce rule-ins; drop if noise.
+CANDIDATES = {
+    "catalysts": [
+        # @JasonL_Capital — nominated 2026-10-12: structured SOFI LEAP writeup,
+        # numbers verified against live sources, honest max-loss framing.
+        "JasonL_Capital",
+    ],
+}
+
 QUERIES = {
     "flow": ("Unusual options flow alerts in the last 24 hours: notable "
              "large/sweep call or put buying, tickers, strikes, expiries, "
@@ -53,7 +65,7 @@ QUERIES = {
 
 def pulse(section: str, timeout_s: int = 180) -> tuple[str, dict]:
     """Run one headless Grok query. Returns (text, usage dict)."""
-    handles = HANDLES.get(section)
+    handles = HANDLES.get(section, []) + CANDIDATES.get(section, [])
     scope = (f"posts from these accounts in the last 24 hours: "
              f"{' '.join(f'@{h}' for h in handles)}" if handles else
              "posts across trading/finance X in the last 24 hours")
