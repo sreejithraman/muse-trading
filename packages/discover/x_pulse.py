@@ -42,6 +42,10 @@ CANDIDATES = {
         # @JasonL_Capital — nominated 2026-10-12: structured SOFI LEAP writeup,
         # numbers verified against live sources, honest max-loss framing.
         "JasonL_Capital",
+        # @FunOfInvesting — nominated 2026-10-13: META earnings setup (Truist
+        # $1,000 raise + confirmed ~$10B Q3 legal charge not in prior expense
+        # guidance) — numbers-heavy, checkable, catalyst-dated.
+        "FunOfInvesting",
     ],
 }
 

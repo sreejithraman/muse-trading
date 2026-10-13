@@ -48,10 +48,18 @@ class KeyDate:
 
 @dataclass
 class Position:
-    shares: float
-    blended_cost: float
+    shares: float = 0.0
+    blended_cost: float = 0.0
     stop: float | None = None
     stop_note: str = ""
+    # Option legs (0 = equity position). Extended 2026-10-13 so the thesis
+    # board can carry single-leg option positions (SOFI Jan'28 $15C).
+    contracts: int = 0
+    strike: float | None = None
+    expiry: str = ""
+    premium_paid: float | None = None   # per-contract premium at entry
+    premium_total: float | None = None  # total debit
+    breakeven: float | None = None      # underlying price at expiry for flat
 
 
 @dataclass

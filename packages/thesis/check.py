@@ -61,10 +61,12 @@ def main() -> int:
     for t in theses:
         px = quotes.get(t.ticker)
         pos = t.position
-        blended = pos.blended_cost if pos else None
+        is_option = bool(pos and pos.contracts)
+        blended = pos.breakeven if is_option else (pos.blended_cost if pos else None)
         stop = pos.stop if pos else None
 
-        vs_cost = f"{(px / blended - 1) * 100:+.1f}%" if px and blended else "—"
+        vs_cost = f"{(px / blended - 1) * 100:+.1f}%*" if px and blended and is_option else \
+                  (f"{(px / blended - 1) * 100:+.1f}%" if px and blended else "—")
         stop_dist = f"{(px / stop - 1) * 100:+.1f}%" if px and stop else "—"
         px_s = f"{px:.2f}" if px else "(offline)"
 
@@ -73,16 +75,20 @@ def main() -> int:
                           key=lambda k: k.date)
         nxt = f"{upcoming[0].date} {upcoming[0].event[:28]}" if upcoming else "—"
 
-        # red-line proximity flags
+        # red-line proximity flags (close-based and suspended lines flagged distinctly)
         flags = []
         if px:
             for rl in t.red_lines:
                 if rl.price_level:
+                    if rl.suspended_until and today <= rl.suspended_until:
+                        flags.append(f"⏸ ${rl.price_level:g} suspended through {rl.suspended_until}")
+                        continue
                     dist = (px / rl.price_level - 1) * 100
+                    cb = " (close-based)" if rl.close_based else ""
                     if 0 <= dist <= WARN_PCT:
-                        flags.append(f"⚠ {dist:.1f}% above ${rl.price_level:g}")
+                        flags.append(f"⚠ {dist:.1f}% above ${rl.price_level:g}{cb}")
                     elif dist < 0:
-                        flags.append(f"✖ BELOW ${rl.price_level:g}: {rl.action[:40]}")
+                        flags.append(f"✖ BELOW ${rl.price_level:g}{cb}: {rl.action[:40]}")
         if t.status != "INTACT":
             flags.append(f"[{t.status}]")
 
@@ -91,6 +97,7 @@ def main() -> int:
     print("-" * 92)
     print(f"{len(theses)} theses · {today}"
           f"{' · OFFLINE (no live prices)' if offline or not quotes else ''}")
+    print("* vsCOST for option theses = vs breakeven")
     return 0
 
 
