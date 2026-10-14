@@ -56,8 +56,8 @@ def main() -> int:
     today = date.today().isoformat()
 
     print(f"{'TICKER':<7}{'STATUS':<10}{'PRICE':>9}{'vsCOST':>8}"
-          f"{'STOP-DIST':>10}{'NEXT KEY DATE':>22}  FLAGS")
-    print("-" * 92)
+          f"{'STOP-DIST':>10}{'TP-DIST':>9}{'NEXT KEY DATE':>22}  FLAGS")
+    print("-" * 101)
     for t in theses:
         px = quotes.get(t.ticker)
         pos = t.position
@@ -68,6 +68,10 @@ def main() -> int:
         vs_cost = f"{(px / blended - 1) * 100:+.1f}%*" if px and blended and is_option else \
                   (f"{(px / blended - 1) * 100:+.1f}%" if px and blended else "—")
         stop_dist = f"{(px / stop - 1) * 100:+.1f}%" if px and stop else "—"
+        tp = pos.take_profit if pos else None
+        tp_dist = (f"{(tp / px - 1) * 100:+.1f}%"
+                   if px and tp and pos.take_profit_basis == "underlying"
+                   else "—")
         px_s = f"{px:.2f}" if px else "(offline)"
 
         # next upcoming key date
@@ -91,10 +95,12 @@ def main() -> int:
                         flags.append(f"✖ BELOW ${rl.price_level:g}{cb}: {rl.action[:40]}")
         if t.status != "INTACT":
             flags.append(f"[{t.status}]")
+        if pos and pos.take_profit and pos.take_profit_basis == "premium":
+            flags.append(f"TP prem ${pos.take_profit:g} ({pos.take_profit_qty})")
 
         print(f"{t.ticker:<7}{t.status:<10}{px_s:>9}{vs_cost:>8}"
-              f"{stop_dist:>10}{nxt:>22}  {'; '.join(flags)}")
-    print("-" * 92)
+              f"{stop_dist:>10}{tp_dist:>9}{nxt:>22}  {'; '.join(flags)}")
+    print("-" * 101)
     print(f"{len(theses)} theses · {today}"
           f"{' · OFFLINE (no live prices)' if offline or not quotes else ''}")
     print("* vsCOST for option theses = vs breakeven")

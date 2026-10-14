@@ -179,3 +179,32 @@ Newest entries go at the top.
 - **Judged by:** exits execute on schedule when no new info arrived; when
   genuinely new info lands between checklist and close, the decision log shows
   the checklist re-run with it.
+
+## 2026-10-14 — Paper rethink: vol-aware sizing, mechanical brackets, provenance ledger, falsification condition
+
+- **What:** Full operation rethink against DXRG 2609.05663 ("What LLM Trading
+  Agents Actually Do in Production"), at Sreejith's direction. Built: (1)
+  `packages/sizing/size.py` — ATR-based sizing (size inversely to realized
+  vol, QQQ-regime governor halves size in high-vol regimes, 2%-of-equity risk
+  cap); the morning session now sizes in code, not on judgment. (2)
+  Mechanical take-profit brackets on every position: half at 2x the stop
+  distance from cost; GRAB native sell limit (33 sh @ $3.88, gtc) placed and
+  confirmed 2026-10-14; fractional positions session-monitored via TP-DIST;
+  SOFI premium-double trigger (session must decide); SMMT/ARWR exempt as
+  binary catalysts. (3) `Thesis.record_fill()` decision-provenance ledger and
+  `record_postmortem()`, wired into the morning entry step and the close
+  review. (4) Pre-registered `confirmation` observable backfilled on all
+  theses. Kept deliberately: the operating layer, no-leverage structure, QQQ
+  ledger, changelog, low frequency, entry bar.
+- **Why:** The paper's firmest findings map directly onto our defects:
+  volatility-blind sizing was their largest measured defect; a fixed bracket
+  beat every discretionary exit (+39 bps/position); agent fixed effects absorb
+  60% of variance, so the mitigation is less of the agent at execution.
+  Rebuild-from-scratch rejected per the paper's own #1 finding (the operating
+  layer is the valuable part; strategy text is cheap).
+- **Judged by:** Friday 2026-10-16 ablation applies the paper's utility bar
+  (keep only tools that demonstrably change behavior). FALSIFICATION
+  CONDITION: if the cumulative ledger still trails QQQ three months out
+  (~mid-Jan 2027), the paper's "no edge" finding is probably us — shrink
+  gross exposure and stop adding machinery. Judge the new rules by whether
+  they move the ledger, not by whether they feel rigorous.

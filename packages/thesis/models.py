@@ -60,6 +60,14 @@ class Position:
     premium_paid: float | None = None   # per-contract premium at entry
     premium_total: float | None = None  # total debit
     breakeven: float | None = None      # underlying price at expiry for flat
+    # Mechanical take-profit bracket (paper: DXRG 2609.05663 §6.2 — a fixed
+    # bracket beats every discretionary exit measured). Placed atomically at
+    # entry with the stop; exits are not re-deliberated.
+    take_profit: float | None = None   # underlying price target, or premium
+                                       # target when take_profit_basis="premium"
+    take_profit_basis: str = "underlying"  # "underlying" | "premium"
+    take_profit_qty: str = "half"      # how much the bracket takes off
+    take_profit_note: str = ""
 
 
 @dataclass
@@ -82,6 +90,10 @@ class Thesis:
     key_dates: list[KeyDate] = field(default_factory=list)
     position: Position | None = None
     decisions: list[Decision] = field(default_factory=list)
+    # Pre-registered confirmation (canon rule 2): the observable at the
+    # catalyst that means the thesis was RIGHT — written before entry, not
+    # just the red lines for being wrong.
+    confirmation: str = ""
 
     # ---- persistence ----
     @classmethod
@@ -99,6 +111,7 @@ class Thesis:
             key_dates=[KeyDate(**k) for k in raw.get("key_dates", [])],
             position=Position(**raw["position"]) if raw.get("position") else None,
             decisions=[Decision(**d) for d in raw.get("decisions", [])],
+            confirmation=raw.get("confirmation", ""),
         )
 
     def to_dict(self) -> dict:
@@ -113,6 +126,7 @@ class Thesis:
             "red_lines": [r.__dict__ for r in self.red_lines],
             "key_dates": [k.__dict__ for k in self.key_dates],
             "decisions": [x.__dict__ for x in self.decisions],
+            "confirmation": self.confirmation,
         }
         if self.position:
             d["position"] = self.position.__dict__
@@ -135,6 +149,38 @@ class Thesis:
 
     def log_decision(self, text: str, when: str | None = None) -> Decision:
         dec = Decision(date=when or date_cls.today().isoformat(), text=text)
+        self.decisions.append(dec)
+        return dec
+
+    def record_fill(self, side: str, qty: float, price: float,
+                    context: dict | None = None,
+                    when: str | None = None) -> Decision:
+        """Decision-provenance ledger (paper §8.3): every fill carries the
+        full context the session saw — quotes, QQQ/VIX snapshot, digest and
+        screen refs, checklist outcome, sizing inputs. Enables replay and
+        post-mortems; the session narrative is non-canonical, this is."""
+        ctx = context or {}
+        lines = [f"FILL {side} {qty} @ {price}"]
+        for k in ("qqq", "vix", "sizing", "checklist", "digest", "screen",
+                  "thesis_version", "bracket"):
+            if ctx.get(k):
+                lines.append(f"  {k}: {ctx[k]}")
+        if ctx.get("note"):
+            lines.append(f"  note: {ctx['note']}")
+        dec = Decision(date=when or date_cls.today().isoformat(),
+                       text="\n".join(lines), source="fill")
+        self.decisions.append(dec)
+        return dec
+
+    def record_postmortem(self, believed: str, happened: str,
+                          updates: str,
+                          when: str | None = None) -> Decision:
+        """Post-mortem on a closed position: what we believed, what happened,
+        what updates the priors. The canon bought with retractions."""
+        text = (f"POSTMORTEM\n  believed: {believed}\n  happened: {happened}\n"
+                f"  updates: {updates}")
+        dec = Decision(date=when or date_cls.today().isoformat(),
+                       text=text, source="postmortem")
         self.decisions.append(dec)
         return dec
 
