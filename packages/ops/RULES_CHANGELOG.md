@@ -158,3 +158,24 @@ Newest entries go at the top.
 - **Judged by:** no intraday approach alerts on mechanical lines when price
   action stays above them intraday; the thesis tools keep passing YAML
   validation every morning.
+
+## 2026-10-14 — Pre-exit new-information check (close-review step)
+
+- **What:** The close review now carries a standing step: when an armed
+  mechanical exit line is tested at today's close, confirm no material new
+  information arrived since the morning's near-tripwire checklist before
+  honoring the trigger. New information = facts the last judgment didn't have
+  (e.g. an afternoon webinar Q&A, a post-checklist news release). Price
+  movement alone is never new information and never reopens the call. If
+  material new info exists, re-run the checklist with it and log the outcome;
+  otherwise the rule fires as written. This is a scan, not a re-deliberation —
+  the default is execution.
+- **Why:** Sreejith's 10/14 proposal — judgment runs in the morning session,
+  triggers fire at the close, and information can land in between (the ARWR
+  webinar Q&A runs 2:30 PM, after the morning checklist, on the same day the
+  re-armed $60 line is tested). Without the check, the close could execute on
+  a stale judgment; without the fence, every exit becomes a 3:59 PM
+  re-deliberation under loss pressure and mechanical exits die by hesitation.
+- **Judged by:** exits execute on schedule when no new info arrived; when
+  genuinely new info lands between checklist and close, the decision log shows
+  the checklist re-run with it.
