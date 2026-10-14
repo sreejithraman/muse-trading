@@ -47,6 +47,13 @@ CANDIDATES = {
         # guidance) — numbers-heavy, checkable, catalyst-dated.
         "FunOfInvesting",
     ],
+    "trending": [
+        # @MohanadInv — nominated 2026-10-14: trending-sweep posts with real
+        # substance — MU/CXMT read (Rosenblatt+BofA "overstated threat" calls)
+        # matched our verified position tape; CIFR $850M convert post carried
+        # an 8-K-based model ($13.1M/MW, capped call 150% above close).
+        "MohanadInv",
+    ],
 }
 
 QUERIES = {

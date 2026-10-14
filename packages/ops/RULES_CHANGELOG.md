@@ -135,3 +135,26 @@ Newest entries go at the top.
 - **Judged by:** whether the next weekend gap near a tripwire is caught by a
   resting native order rather than the tripwire; the Friday close-review log
   should show the coverage check explicitly.
+
+## 2026-10-14 — Mechanical "close below" red lines flagged close_based (watchlist/hook data fix)
+
+- **What:** All mechanical "Close below" red lines in thesis YAMLs now carry
+  `close_based: true` (CRWD, GRAB, MU, RKLB, SMMT — previously only ARWR's had
+  the flag). The emitted hook watchlist now marks them close_based, so
+  circuit-watch skips intraday *approach* alerts on them and fires only on
+  actual close-basis breaches.
+- **Why:** Morning session found the emitted watchlist marking RKLB/MU/etc.
+  close-based lines as touch-triggered — the same false-positive class as the
+  10/12 ARWR fix (intraday approach alerts on a line whose thesis explicitly
+  says "close below"). An un-actionable alert is noise that trains everyone
+  to ignore the system.
+- **Also fixed:** GRAB.yaml's `position:` block sat after the decision log at
+  end-of-file, so two consecutive decision-log appends (10/13 and 10/14)
+  landed after `position:` and broke YAML parsing, failing checkin.py and
+  check.py. `position:` now sits before `decisions:` — future appends are safe.
+- **Also:** @MohanadInv nominated to x_pulse.py CANDIDATES (trending) —
+  substantive CXMT/MU analysis matching our verified read, plus an 8-K-based
+  CIFR convert model.
+- **Judged by:** no intraday approach alerts on mechanical lines when price
+  action stays above them intraday; the thesis tools keep passing YAML
+  validation every morning.
