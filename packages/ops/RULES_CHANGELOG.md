@@ -10,6 +10,14 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-16 — Tool ablation (paper rethink commitment): utility bar applied, three inputs demoted
+
+- **What:** Ran the 2026-10-14 commitment: the paper's utility bar (keep only what demonstrably changed a decision this month) applied to every morning tool/input. KEEP: check-in routine + circuit-watch hook (INTC dead-stop exit 10/12); thesis YAMLs + check.py board (drove ARWR/RKLB/MU calls); near-tripwire checklist (written ARWR 10/12+10/14, MU 10/15); pre-exit new-information check (live ARWR 10/14, fired as written); record_fill/record_postmortem (post-mortems filed for INTC/ARWR/RKLB); vol-aware sizing (standing method since 10/14); mechanical take-profit brackets (GRAB native TP 10/14); idea inbox (routed USAR out, SOFI in → bought 10/13); X digest (QuiverQuant flags → no-scraper verdict + NANC paper entry; candidate nominations); watchlist regeneration (feeds the hook); MAE/MFE (already on-demand only); Feed prompt sync; paper book (first review 11/1, not yet judgeable). DEMOTE: Form 4 scanner daily → weekly (no cluster changed a decision in ~2 weeks of daily runs; fold into Sunday sweep, re-grade in a month); TV screener daily → weekly Monday pre-open (no screen idea ruled in this month); TA daily regime print → on-demand when setting/judging a stop (ATR levels earned their keep at entry; the daily print changed no call). EXEMPT: catalyst sweep (first run 10/18 — judge after it runs). Fixed in the same pass: screener ran on system python which lost the tvscreener module (VM replacement wipes /usr); new persistent venv at `~/workspace/trading-tools/.venv`, morning cron now calls the screener through it.
+- **Why:** The paper's best-performing template was the most restrained; compute that never changes a decision is the agent admiring its own machinery.
+- **Judged by:** demoted inputs stay demoted unless a weekly run changes a decision; the falsification condition (mid-Jan 2027) judges the survivors.
+
+---
+
 ## 2026-10-15 (morning) — checkin.py excludes CLOSED too; exited names can't re-fire the hook
 
 - **What:** `checkin.py` now excludes both `CLOSED` and `EXITED` theses in `--mode` evaluation and `--emit-watchlist` (was: EXITED only). Regenerated the live watchlist: ARWR, RKLB, INTC removed.
