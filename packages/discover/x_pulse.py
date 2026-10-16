@@ -4,10 +4,16 @@ Uses the grok CLI (subscription OAuth, no API key) in headless single-turn
 mode. The x_search tool is exposed through the subscription proxy —
 verified 2026-10-07: real posts with timestamps and links returned.
 
-Runs 4 queries (flow / catalysts / news / trending) over vetted handles from
-the idea-discovery research, plus an open-ended trending sweep. Output:
-markdown digest the morning session reads. Each query bills against the
-user's Grok subscription quota, not API credits.
+Runs queries over vetted handles from the idea-discovery research, plus an
+open-ended trending sweep. Output: markdown digest the morning session
+reads. Each query bills against the user's Grok subscription quota, not
+API credits.
+
+Section set (2026-10-16 ablation, utility bar): the daily digest runs
+catalysts / news / trending only. The flow section produced zero rule-ins
+in all of October (entries this month came from catalysts); it runs via
+--sections flow (or --sections all) for the weekly Sunday catalyst sweep,
+not daily.
 
 Handle curation is owned by Mu$e (standing direction 2026-10-12): nominate
 promising accounts to CANDIDATES as they surface (flagged posts, trending
@@ -29,7 +35,12 @@ HANDLES = {
     "flow": ["unusual_whales", "CheddarFlow", "BullflowIO", "itsCblast",
              "OptionsHawk", "snorlax_uw"],
     "catalysts": ["BPharmCatalyst", "SheffStation", "eWhispers",
-                  "eliant_capital"],
+                  "eliant_capital",
+                  # @JasonL_Capital — promoted 2026-10-16 from CANDIDATES:
+                  # sustained rule-ins over 4 days (SOFI LEAP rule-in 10/13,
+                  # MU/CXMT read 10/15, AVGO-NBIS buy list 10/16) — takes
+                  # check out, promotion signal criteria met early on density.
+                  "JasonL_Capital"],
     "news": ["FirstSquawk", "LiveSquawk", "Stocktwits", "QuiverQuant"],
 }
 
@@ -39,9 +50,6 @@ HANDLES = {
 # session notes which candidates produce rule-ins; drop if noise.
 CANDIDATES = {
     "catalysts": [
-        # @JasonL_Capital — nominated 2026-10-12: structured SOFI LEAP writeup,
-        # numbers verified against live sources, honest max-loss framing.
-        "JasonL_Capital",
         # @FunOfInvesting — nominated 2026-10-13: META earnings setup (Truist
         # $1,000 raise + confirmed ~$10B Q3 legal charge not in prior expense
         # guidance) — numbers-heavy, checkable, catalyst-dated.
@@ -105,16 +113,23 @@ def pulse(section: str, timeout_s: int = 180) -> tuple[str, dict]:
         return out.stdout.strip(), {}
 
 
-def digest(out_dir: str | Path | None = None) -> Path:
-    """Run all four pulses, write dated markdown digest. Returns path."""
+DAILY_SECTIONS = ("catalysts", "news", "trending")  # 2026-10-16 ablation
+
+
+def digest(out_dir: str | Path | None = None,
+           sections: tuple[str, ...] = DAILY_SECTIONS) -> Path:
+    """Run the requested pulses, write dated markdown digest. Returns path."""
     out_dir = Path(out_dir or Path.home() / "workspace/goals/"
                    "agentic-account-trading-operation/hidden_files")
     out_dir.mkdir(parents=True, exist_ok=True)
     today = date.today().isoformat()
-    path = out_dir / f"x-pulse-{today}.md"
+    suffix = "" if sections == DAILY_SECTIONS else f"-{'-'.join(sections)}"
+    path = out_dir / f"x-pulse-{today}{suffix}.md"
     parts = [f"# X pulse — {today}", ""]
     usage_log: dict = {}
-    for section in ("flow", "catalysts", "news", "trending"):
+    for section in sections:
+        if section not in QUERIES:
+            continue
         try:
             # flow scans 6 handles and fetches post contents; catalysts and
             # the open-ended trending sweep are also heavy
@@ -141,5 +156,13 @@ def digest(out_dir: str | Path | None = None) -> Path:
 
 
 if __name__ == "__main__":
-    p = digest()
+    import argparse
+    ap = argparse.ArgumentParser()
+    ap.add_argument("--sections", default=",".join(DAILY_SECTIONS),
+                    help="comma-separated subset of: flow,catalysts,news,trending "
+                         "('all' runs every section; default is the daily set)")
+    args = ap.parse_args()
+    want = tuple(QUERIES) if args.sections == "all" else tuple(
+        s.strip() for s in args.sections.split(",") if s.strip() in QUERIES)
+    p = digest(sections=want)
     print(f"wrote {p}")

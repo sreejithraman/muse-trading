@@ -10,6 +10,14 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-15 (morning) — checkin.py excludes CLOSED too; exited names can't re-fire the hook
+
+- **What:** `checkin.py` now excludes both `CLOSED` and `EXITED` theses in `--mode` evaluation and `--emit-watchlist` (was: EXITED only). Regenerated the live watchlist: ARWR, RKLB, INTC removed.
+- **Why:** A 9:45 AM hook wake fired breach alerts on ARWR and RKLB — both already exited at 9:44 AM by the morning session on the 10/14 close-review decisions (fills recorded, postmortems written). Root cause: the session's fill flow writes `status: CLOSED` transiently and only later finalizes to `EXITED`; the 10/12 filter (EXITED-only) let CLOSED theses through, and the 9:46 AM watchlist was emitted inside that window — the same false-positive class the 10/12 fix meant to kill, recurring through the transient status. During the investigation the worker briefly swapped the filter to CLOSED-only, which was wrong (steady-state is EXITED — INTC/ARWR/RKLB all carry it); caught and corrected before it shipped.
+- **Judged by:** no hook wakes on exited names; hook log stays clean on exit mornings.
+
+---
+
 ## 2026-10-12 (evening) — Weekly catalyst sweep built (Oct 7 cadence promise completed)
 
 - **What:** New `discovery-catalyst-sweep` cron, Sundays ~6:52 PM ET: week-ahead catalyst calendar — holdings' key_dates (verified within 14 days, YAML corrected if wrong), market-wide events (earnings, FDA/PDUFA, macro), and a collision check flagging mechanical lines within 10% with a binary inside 21 days. Writes to hidden_files; briefs chat with the top 3–5 events.
@@ -179,6 +187,58 @@ Newest entries go at the top.
 - **Judged by:** exits execute on schedule when no new info arrived; when
   genuinely new info lands between checklist and close, the decision log shows
   the checklist re-run with it.
+
+## 2026-10-16 — Ablation: the paper's utility bar applied to every morning input
+
+- **KEEP (one line of evidence each):** unified check-in — its ACT verdict
+  (10/15: ARWR/RKLB/MU flagged) organized a two-exit session, and the
+  verdict is the session's starting point; thesis check.py — its 5%-within-
+  red-line flag triggers written deliberations and its dates column surfaces
+  SMMT Q3 Mon 10/19; X catalysts — the only digest section that produced a
+  rule-in this month (SOFI, 10/13); X news — the Sep-PPI-blowout framing
+  shaped the 10/15 MU deliberation; X trending — the CRWV-credit thread
+  explained today's AI de-risking tape and the RKLB-slip thread validated
+  the 10/15 exit same-day; MAE/MFE excursion as decision-gated — ran 10/12
+  (ARWR) and 10/15 (MU), skipped 10/16 when it couldn't change the verdict
+  (the gate working, not the ritual); vol-aware sizing + mechanical brackets
+  + provenance ledger (Thesis.record_fill/postmortem) — the paper's core,
+  no live test yet for sizing (no entries since 10/14) so judgment reserved
+  to the January ledger; circuit-watch hook — fired on INTC's gap (10/12
+  exit) and its 10/12 false-positive class was self-fixed; candidate-tier
+  handle curation — @JasonL_Capital earned promotion today (4 rule-in
+  signals in 4 days), the mechanism demonstrably changed curation behavior.
+- **DEMOTE:** X flow section — OUT of the daily digest: zero rule-ins in all
+  of October, every entry this month came from catalysts; available via
+  `x_pulse.py --sections flow|all` for the weekly Sunday sweep (the digest
+  cron body still says "four queries" — stale text, flagged). TA test_drive
+  — from daily ritual to on-demand only when judging a stop/trim/exit: every
+  session this month merely confirmed fixed stops bind vs 3xATR and no trade
+  changed on TA output. Screener — from daily to weekly + on-demand:
+  "no book holdings in top-30, nothing vets" every single day this month;
+  the momentum discipline survives at lower cadence. Form 4 scan —
+  RECOMMENDED weekly (needs a schedule change: not executed here per the
+  scheduler rules): zero rule-ins this month, every cluster ruled out daily,
+  clusters are stale-dated by nature (GME traded 9/8, filed 10/13).
+- **FIXES SHIPPED TODAY:** (1) checkin.py fetch_quotes now refreshes the
+  OAuth token on "JWT verification failed" and retries once — the 4th
+  overnight-expiry occurrence (9/24, 10/1, 10/8, 10/16) is the last one the
+  check-in path has to suffer manually; (2) TA test_drive.py now reads
+  active theses for tickers + fixed stops instead of a hardcoded list —
+  it was still printing INTC/ARWR/RKLB (exited) as stale noise; (3)
+  @JasonL_Capital promoted from CANDIDATES to HANDLES[catalysts].
+- **IDENTIFIED, NOT SHIPPED:** Form 4 daily→weekly cadence (schedule change
+  on a different cron — flagged for the main agent, not executed); the
+  9:40 session body still names daily screen/TA/Flow 4 — future sessions
+  should read this changelog as overriding (the body itself ordered the
+  ablation); feed.prompt_get/prompt_update still unavailable to workers —
+  holdings changed 10/13 and 10/15, both flagged for the main agent, the
+  strategy.md standing note remains the workaround.
+- **Why:** DXRG 2609.05663's sharpest transferable finding is restraint —
+  the most restrained template performed best. Anything that runs daily but
+  never changes a decision is attention tax, not edge.
+- **Judged by:** fewer daily inputs with no lost decisions — if a weekly
+  Form 4/flow/screen ever produces a rule-in the daily set would have
+  missed, that decision goes in the log and the cadence is revisited.
 
 ## 2026-10-14 — Paper rethink: vol-aware sizing, mechanical brackets, provenance ledger, falsification condition
 

@@ -15,12 +15,14 @@ from pathlib import Path
 sys.path.insert(0, str(Path(__file__).resolve().parent))
 from signals import atr_stop, rvol, rs_vs_benchmark, vol_regime  # noqa: E402
 
-TICKERS = ["MU", "INTC", "CRWD", "SMMT", "ARWR", "RKLB"]
-# Illustrative fixed stops for the demo comparison (not real positions).
-# To compare against your own book's stops, create fixed_stops.local.json
+TICKERS = ["MU", "CRWD", "SMMT", "GRAB", "SOFI"]  # fallback if thesis lib missing
+# Fixed stops for the demo comparison. Active theses are the default source
+# (2026-10-16 ablation: the old hardcoded list kept printing exited positions
+# INTC/ARWR/RKLB — stale noise). To override, drop a fixed_stops.local.json
 # next to this file: {"MU": 900.00, ...} — it is gitignored and never pushed.
-ILLUSTRATIVE_STOPS = {"MU": 900.00, "INTC": 100.00, "CRWD": 240.00,
-                      "SMMT": 15.00, "ARWR": 55.00, "RKLB": 65.00}
+ILLUSTRATIVE_STOPS = {"MU": 800.00, "CRWD": 200.00, "SMMT": 12.00,
+                      "GRAB": 2.40, "SOFI": 12.00}  # pure illustration — the
+# real book always comes from load_book_stops(); never put real stops here
 
 
 def load_fixed_stops() -> dict:
@@ -28,6 +30,26 @@ def load_fixed_stops() -> dict:
     if local.exists():
         return json.loads(local.read_text())
     return ILLUSTRATIVE_STOPS
+
+
+def load_book_stops() -> dict | None:
+    """{ticker: fixed stop} for active theses (status != EXITED/CLOSED).
+
+    Option-only theses (no numeric stop) are excluded; the EXAMPLE template
+    is not a position. Returns None if the thesis lib is unavailable."""
+    try:
+        sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "thesis"))
+        from models import load_all
+        stops = {}
+        for t in load_all():
+            if t.status in ("CLOSED", "EXITED") or t.ticker == "EXAMPLE":
+                continue
+            stop = getattr(t.position, "stop", None)
+            if stop:
+                stops[t.ticker] = float(stop)
+        return stops or None
+    except Exception:
+        return None
 
 
 def fetch_bars(symbol: str) -> list[dict]:
@@ -61,10 +83,12 @@ def fetch_bars(symbol: str) -> list[dict]:
 
 
 def main() -> int:
-    fixed_stops = load_fixed_stops()
-    data = {t: fetch_bars(t) for t in TICKERS}
+    book = load_book_stops()
+    tickers = list(book) if book else TICKERS
+    fixed_stops = book if book else load_fixed_stops()
+    data = {t: fetch_bars(t) for t in tickers}
     qqq = fetch_bars("QQQ")
-    missing = [t for t in TICKERS if len(data[t]) < 40]
+    missing = [t for t in tickers if len(data[t]) < 40]
     if missing or len(qqq) < 40:
         print(f"insufficient data for: {missing}", file=sys.stderr)
         return 1
@@ -72,20 +96,20 @@ def main() -> int:
     print(f"{'TKR':<5}{'PX':>9}{'ATR':>8}{'ATR%':>7}"
           f"{'3xATR-STOP':>11}{'FIXED':>9}{'RVOL':>6}{'RSvQQQ':>8}  REGIME")
     print("-" * 78)
-    for t in TICKERS:
+    for t in tickers:
         bars = data[t]
         s = atr_stop(bars, k=3.0)
         rv = rvol(bars)
         rs = rs_vs_benchmark(bars, qqq)
         regime = vol_regime(bars)
-        fixed = fixed_stops[t]
+        fixed = fixed_stops.get(t)
+        fixed_s = f"{fixed:>9.2f}" if fixed else f"{'n/a':>9}"
         print(f"{t:<5}{s['close']:>9.2f}{s['atr']:>8.2f}{s['atr_pct']:>6.1f}%"
-              f"{s['stop']:>11.2f}{fixed:>9.2f}{rv or 0:>6.2f}{rs or 0:>+7.1f}%  "
+              f"{s['stop']:>11.2f}{fixed_s}{rv or 0:>6.2f}{rs or 0:>+7.1f}%  "
               f"{regime}")
     print("-" * 78)
     print("3xATR-STOP = volatility-based suggestion (close - 3*ATR14); "
-          "FIXED = illustrative fixed stop (drop a fixed_stops.local.json "
-          "next to this file to compare your own book's stops).")
+          "FIXED = book fixed stop from the thesis (option-only names excluded).")
     return 0
 
 

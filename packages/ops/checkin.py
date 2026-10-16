@@ -39,35 +39,83 @@ ALERT_PCT = 2.0   # within this % above a red line -> alert
 DROP_PCT = -5.0   # intraday move at or below this -> alert
 
 
+RH_DIR = Path.home() / "workspace/robinhood-mcp"
+
+
+def _refresh_token() -> bool:
+    """One-shot OAuth refresh grant against the stored refresh_token.
+
+    The access token expires overnight (JWT verification failed); this is the
+    4th occurrence (9/24, 10/1, 10/8, 10/16). Refreshing here — once, then
+    retrying the MCP call — ends the recurring friction on the check-in path.
+    """
+    try:
+        from urllib.parse import urlencode
+        from urllib import request as rq
+
+        state = json.loads((RH_DIR / ".oauth_state.json").read_text())
+        tokp = RH_DIR / ".tokens.json"
+        tokens = json.loads(tokp.read_text())
+        data = urlencode({
+            "grant_type": "refresh_token",
+            "refresh_token": tokens["refresh_token"],
+            "client_id": state["client_id"],
+        }).encode()
+        req = rq.Request(state["token_endpoint"], data=data, method="POST")
+        with rq.urlopen(req, timeout=20) as r:
+            new = json.loads(r.read().decode())
+        tokens["access_token"] = new.get("access_token", tokens["access_token"])
+        if new.get("refresh_token"):
+            tokens["refresh_token"] = new["refresh_token"]
+        tokp.write_text(json.dumps(tokens))
+        os.chmod(tokp, 0o600)
+        print("(access token refreshed)", file=sys.stderr)
+        return True
+    except Exception as e:  # noqa: BLE001
+        print(f"(token refresh failed: {e})", file=sys.stderr)
+        return False
+
+
 def fetch_quotes(tickers: list[str]) -> dict[str, dict]:
     """Live quotes via Robinhood MCP. Returns {symbol: {price, prev_close}}."""
     env = dict(os.environ, NO_PROXY="", no_proxy="")
-    try:
-        out = subprocess.run(
-            [MCP_PY, MCP_TOOL, "get_equity_quotes", json.dumps({"symbols": tickers})],
-            capture_output=True, text=True, timeout=60, env=env,
-        )
-        data = json.loads(out.stdout).get("data", {}).get("results", [])
-        quotes = {}
-        for r in data:
-            q = r.get("quote", {})
-            sym = q.get("symbol", "")
-            px = q.get("last_trade_price") or q.get("last_non_reg_trade_price")
-            if px:
-                quotes[sym] = {
-                    "price": float(px),
-                    "prev_close": float(q.get("previous_close") or 0) or None,
-                }
-        return quotes
-    except Exception as e:  # noqa: BLE001
-        print(f"(quote fetch failed: {e})", file=sys.stderr)
-        return {}
+    for attempt in range(2):
+        try:
+            out = subprocess.run(
+                [MCP_PY, MCP_TOOL, "get_equity_quotes", json.dumps({"symbols": tickers})],
+                capture_output=True, text=True, timeout=60, env=env,
+            )
+            if "JWT verification failed" in out.stdout and attempt == 0:
+                if _refresh_token():
+                    continue
+                return {}
+            data = json.loads(out.stdout).get("data", {}).get("results", [])
+            quotes = {}
+            for r in data:
+                q = r.get("quote", {})
+                sym = q.get("symbol", "")
+                px = q.get("last_trade_price") or q.get("last_non_reg_trade_price")
+                if px:
+                    quotes[sym] = {
+                        "price": float(px),
+                        "prev_close": float(q.get("previous_close") or 0) or None,
+                    }
+            return quotes
+        except Exception as e:  # noqa: BLE001
+            if attempt == 0 and _refresh_token():
+                continue
+            print(f"(quote fetch failed: {e})", file=sys.stderr)
+            return {}
+    return {}
 
 
 def evaluate() -> dict:
-    # EXITED theses are history, not positions: scoring them produces stale
-    # verdicts (e.g. INTC firing `act` after the 2026-10-12 exit).
-    theses = [t for t in load_all() if t.status != "EXITED"]
+    # Exited theses are history, not positions: scoring them produces stale
+    # verdicts (e.g. ARWR/RKLB firing `act` after the 2026-10-15 exits).
+    # Two status spellings exist: the session's fill flow writes CLOSED
+    # transiently, then finalizes to EXITED; the check must exclude both
+    # or a watchlist emitted mid-flow keeps flagging dead names.
+    theses = [t for t in load_all() if t.status not in ("CLOSED", "EXITED")]
     tickers = [t.ticker for t in theses]
     quotes = fetch_quotes(tickers)
     now = datetime.now(timezone.utc).isoformat(timespec="seconds")
@@ -131,7 +179,7 @@ def main() -> int:
     args = ap.parse_args()
 
     if args.emit_watchlist:
-        theses = [t for t in load_all() if t.status != "EXITED"]
+        theses = [t for t in load_all() if t.status not in ("CLOSED", "EXITED")]
         today_iso = date.today().isoformat()
         levels = []
         for t in theses:
