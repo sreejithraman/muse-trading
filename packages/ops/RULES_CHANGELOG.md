@@ -10,6 +10,14 @@ Newest entries go at the top.
 
 ---
 
+## 2026-10-16 (afternoon) — checkin.py blinded by malformed thesis YAML; self-caught and fixed
+
+- **What:** The 3:10 PM hook worker appended decision records at end-of-file in CRWD.yaml and MU.yaml, after the `confirmation:`/`position:` tail keys — breaking yaml.safe_load and crashing checkin.py on startup (load_all throws on any single bad file). The alert-driven system was blind ~3:10–3:48 PM. Fixed by moving the stray entries into their `decisions:` sections, validated every thesis file parses, re-ran checkin cleanly (SMMT/CRWD/MU alerts evaluated). Backups kept at /tmp/CRWD.yaml.bak, /tmp/MU.yaml.bak. AGENTS.md lesson added: decision entries insert immediately before the `confirmation:` line, never at EOF, then re-validate.
+- **Why:** A single malformed file took down the whole tripwire layer — the failure mode the 10/12 false-positive fix didn't cover. Same class as the 10/12 self-caught fix: the machinery repairing itself.
+- **Judged by:** no checkin crashes; hook log stays clean.
+
+---
+
 ## 2026-10-16 — Tool ablation (paper rethink commitment): utility bar applied, three inputs demoted
 
 - **What:** Ran the 2026-10-14 commitment: the paper's utility bar (keep only what demonstrably changed a decision this month) applied to every morning tool/input. KEEP: check-in routine + circuit-watch hook (INTC dead-stop exit 10/12); thesis YAMLs + check.py board (drove ARWR/RKLB/MU calls); near-tripwire checklist (written ARWR 10/12+10/14, MU 10/15); pre-exit new-information check (live ARWR 10/14, fired as written); record_fill/record_postmortem (post-mortems filed for INTC/ARWR/RKLB); vol-aware sizing (standing method since 10/14); mechanical take-profit brackets (GRAB native TP 10/14); idea inbox (routed USAR out, SOFI in → bought 10/13); X digest (QuiverQuant flags → no-scraper verdict + NANC paper entry; candidate nominations); watchlist regeneration (feeds the hook); MAE/MFE (already on-demand only); Feed prompt sync; paper book (first review 11/1, not yet judgeable). DEMOTE: Form 4 scanner daily → weekly (no cluster changed a decision in ~2 weeks of daily runs; fold into Sunday sweep, re-grade in a month); TV screener daily → weekly Monday pre-open (no screen idea ruled in this month); TA daily regime print → on-demand when setting/judging a stop (ATR levels earned their keep at entry; the daily print changed no call). EXEMPT: catalyst sweep (first run 10/18 — judge after it runs). Fixed in the same pass: screener ran on system python which lost the tvscreener module (VM replacement wipes /usr); new persistent venv at `~/workspace/trading-tools/.venv`, morning cron now calls the screener through it.
@@ -276,3 +284,15 @@ Newest entries go at the top.
   (~mid-Jan 2027), the paper's "no edge" finding is probably us — shrink
   gross exposure and stop adding machinery. Judge the new rules by whether
   they move the ledger, not by whether they feel rigorous.
+
+## 2026-10-19 — SMMT stop-suspension window extended 11/13 -> 11/16 (judgment in rule revision)
+
+- **What:** The $14.46 mechanical stop suspension now runs through Mon 2026-11-16 (was Fri 2026-11-13). Re-armed rule: any close at/below $14.46 from 11/16 onward exits the full position next session, market. The thesis-break line (FDA rejection/CRL on the 11/14 PDUFA) stands unchanged and is never paused.
+- **Why:** The 10/12 pause was built around the PDUFA binary but the window ended 11/13, one day before the Sat 11/14 PDUFA — a close below the line on PDUFA-eve Friday would fire the mechanical rule into the very event the pause was designed to suspend. The 10/18 catalyst sweep flagged the one-day gap; the 10/19 morning session closed it. Pause windows are set by judgment per case, never a fixed number: 11/16 covers the binary plus one session of market reaction.
+- **Judged by:** whether the re-armed 11/16 rule fires or is honored cleanly at the first close test after re-arming.
+
+## 2026-10-26 — Falsification condition retired (mid-Jan 2027 shrink rule removed)
+
+- **What:** The 2026-10-14 falsification condition — shrink gross exposure if the ledger still trails QQQ ~mid-Jan 2027 — is retired and no longer in force.
+- **Why:** Sreejith directed its removal on 2026-10-26. It was Mu$e's proposal in the Oct 14 paper-rethink build, not Sreejith's own rule; the QQQ ledger and scoring continue, but no automatic shrink deadline is attached to them.
+- **Judged by:** the ledger keeps being scored against QQQ; no shrink action is triggered by any date.

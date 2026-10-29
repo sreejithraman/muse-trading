@@ -3,6 +3,8 @@
 Goal: daily pre-market (~8:30 AM ET) scan for insider cluster buys, feeding the
 9:40 morning session. Output: dated markdown digest like `x_pulse.py`.
 Status: v1 BUILT 2026-10-07 (`form4_scanner.py`) — OpenInsider scrape, no key.
+2026-10-26: FIRST BREAK — cluster page fetched but no tinytable (layout/bot page).
+2026-10-27: SECOND BREAK — openinsider.com unreachable from this environment entirely (direct fetch times out / empty reply; live browser: connection reset on both the cluster page and homepage). Per spec, two breaks trigger the Finnhub-keyed rewrite; the scrape route is dead, not just the parser.
 Deviations from spec: digests go to
 `~/workspace/goals/agentic-account-trading-operation/hidden_files/form4-scan-YYYY-MM-DD.md`
 (same dir the 9:40 session reads the x-pulse digests from), not

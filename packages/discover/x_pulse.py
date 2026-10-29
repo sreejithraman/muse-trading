@@ -25,8 +25,19 @@ from __future__ import annotations
 
 import json
 import subprocess
+import time
 from datetime import date
 from pathlib import Path
+
+# Retry policy (added 2026-10-29, after the 2026-10-28 news section timed
+# out at 180s and succeeded on a manual re-run): a failed section is
+# retried once after a short pause, inside the same run, so the dated
+# digest lands complete instead of carrying a failed placeholder that the
+# morning session must work around. Retries bill subscription quota, so
+# they fire only on failure — a section that succeeds first try costs
+# exactly one query, and the usage log records attempts per section.
+RETRY_ATTEMPTS = 2
+RETRY_PAUSE_S = 30
 
 GROK = str(Path.home() / ".grok/bin/grok")
 
@@ -130,18 +141,31 @@ def digest(out_dir: str | Path | None = None,
     for section in sections:
         if section not in QUERIES:
             continue
-        try:
-            # flow scans 6 handles and fetches post contents; catalysts and
-            # the open-ended trending sweep are also heavy
-            body, usage = pulse(section, timeout_s=300 if section in ("flow", "catalysts", "trending") else 180)
+        body, usage, attempts = None, {}, 0
+        last_err: Exception | None = None
+        for attempt in range(1, RETRY_ATTEMPTS + 1):
+            attempts = attempt
+            try:
+                # flow scans 6 handles and fetches post contents; catalysts and
+                # the open-ended trending sweep are also heavy
+                body, usage = pulse(section, timeout_s=300 if section in ("flow", "catalysts", "trending") else 180)
+                last_err = None
+                break
+            except Exception as e:  # noqa: BLE001 — retry once, then degrade
+                last_err = e
+                if attempt < RETRY_ATTEMPTS:
+                    time.sleep(RETRY_PAUSE_S)
+        if last_err is not None:  # noqa: BLE001 — one failed pulse shouldn't kill the digest
+            body = f"_pulse failed after {attempts} attempts: {last_err}_"
+            usage_log[section] = {"error": str(last_err)[:120],
+                                  "attempts": attempts}
+        else:
             usage_log[section] = {
                 "input_tokens": usage.get("input_tokens"),
                 "output_tokens": usage.get("output_tokens"),
                 "total_cost_usd": usage.get("total_cost_usd"),
+                "attempts": attempts,
             }
-        except Exception as e:  # noqa: BLE001 — one failed pulse shouldn't kill the digest
-            body = f"_pulse failed: {e}_"
-            usage_log[section] = {"error": str(e)[:120]}
         parts += [f"## {section}", "", body, ""]
     path.write_text("\n".join(parts))
     # Quota burn log (private — lives next to the digests, never synced to
