@@ -296,3 +296,165 @@ Newest entries go at the top.
 - **What:** The 2026-10-14 falsification condition — shrink gross exposure if the ledger still trails QQQ ~mid-Jan 2027 — is retired and no longer in force.
 - **Why:** Sreejith directed its removal on 2026-10-26. It was Mu$e's proposal in the Oct 14 paper-rethink build, not Sreejith's own rule; the QQQ ledger and scoring continue, but no automatic shrink deadline is attached to them.
 - **Judged by:** the ledger keeps being scored against QQQ; no shrink action is triggered by any date.
+
+## 2026-11-11 — Standing rule: code by default, agent only where a judgment is named
+
+- **What:** Design principle for the whole operation, set at Sreejith's direction
+  ("Why isn't this the standing rule. This should be how it works for
+  everything no?"): any task that is mechanical — fetch, compute, translate,
+  save, append a log row, swap tickers in the Feed prompt — runs as
+  deterministic code, not as an agent run. An agent does a step only where a
+  judgment is named in advance (near-tripwire checklist, idea rule-in/rule-out,
+  thesis calls and rule rewrites, anomaly investigation). When a step fails a
+  scripted check, it fails loudly and surfaces for the agent/session instead
+  of being decided silently inside the plumbing.
+- **Why:** The refresh exposed the cost: the agent-driven refresh takes 2–4
+  minutes of sequential model round-trips for a job with no judgment in it
+  (fetch → generate → translate → save), while the sessions — where the
+  judgment actually lives — are what the agent is for. This is the Oct 14
+  paper rethink's direction made explicit: the operating layer beats strategy
+  text, and the mitigation for agent variance is less of the agent at
+  execution. The refresh script is the first application.
+- **Judged by:** each mechanical step either has a named judgment attached or
+  it runs as code; refresh latency (target: seconds, not minutes) and
+  stale-stamp incidents are the scoreboard for this rule. Code rules get the
+  same changelog discipline as agent rules — a coded rule that goes stale is
+  logged and revised, not silently trusted.
+
+## 2026-11-11 — Scoring scripted, midday cut to a script-first check
+
+- **What:** Second application of the code-by-default rule. (1) Session scoring
+  is now `packages/ops/score.py` — it reproduces the 16:10 scoring body's steps
+  1–5 exactly (ledger state + deposit-rebase notes, read-only live account via
+  the MCP helper, reconcile, session/cumulative vs QQQ, drawdown, correlated
+  losses, append the row + update running state) and prints the verdict; the
+  16:10 cron is now a launcher that runs the script and delivers its printed
+  verdict verbatim, investigating only on failure. (2) The 12:30 midday
+  session is now a script-first check, not a session: it runs
+  `checkin.py --mode light`, stays silent on `quiet`, triages on `alert`,
+  acts on `act`, and investigates (never silently passes) a data failure —
+  the 15-minute circuit-watch hook remains the primary live coverage. The
+  watchlist-refresh fallback and the alternate-source read stay in the 12:30
+  check.
+- **Why:** The scoring was arithmetic with a formulaic verdict, run by an
+  agent; the midday session was already a thin script wrapper whose live
+  coverage is duplicated by the hook. Verified before wiring: `score.py
+  --verify` recomputed 9 sessions (10-07 deposit rebase, 10-13 LEAP buy,
+  10-15 exits, 10-20 GRAB-calls exit, 11-04 new peak, 11-06 CRWD exit, 11-09
+  cash-drag gap, 11-10 genuine-underperformance gap) 9/9 exact on 10 figures
+  each; the dry-run caught and fixed three real bugs (greedy realized-note
+  regex swallowing the running state, deepest date MM/DD vs ISO parsing
+  defaulting to 0.0, peak rewrite dropping the `$` the board's parser
+  requires). Live ledger never written during verification.
+- **Judged by:** the 16:10 run produces a row identical to what the agent
+  run would have written (`--verify` on the new row must stay exact); a
+  midday `alert`/`act` is still caught by the hook or the 12:30 check, never
+  silently dropped. Known fragilities flagged, not yet fixed: refresh.py's
+  per-exit patterns have no SMMT/GRAB/SOFI entries (a first exit in one of
+  those names breaks the board until a pattern is added), and its
+  cumulative-realized regex requires a negative value.
+
+## 2026-11-16 — Board refresh: same-day exits reconcile against the broker, not the stale ledger
+- **What changed:** `packages/board/refresh.py` gained pending-exit
+  handling. The ledger's Running state is written only by the 16:10
+  scoring run, so an exit made earlier in the day was in the thesis
+  files (and the generator's exit log) but had no figure in the
+  ledger's per-exit breakdown — the refresh failed loudly on every
+  run after the exit and the published board stayed on its pre-exit
+  version. Now, when an exit dated today is missing from the ledger,
+  the refresh takes its realized figure from the broker's P&L history
+  for today (the same source scoring uses at the close, so the two
+  agree once scoring runs) and reconciles the exit-log sum against
+  ledger realized + pending. An exit dated before today with no ledger
+  figure still fails loudly — that is stale data, not timing. The
+  board's realized total likewise includes pending exits.
+  `SMMT.yaml`'s `stop_note` was also corrected: it still read the old
+  mechanical "-15% from blended" stop, so the exit log would have
+  shown the wrong reason; it now reads the thesis break (FDA CRL
+  11/15, no resubmission path).
+- **Why:** Found live 2026-11-16: SMMT exited 09:45 on the CRL, the
+  board kept showing it as a holding, and every Refresh (manual and
+  15-minute) failed with "Ledger has no realized figure for the SMMT
+  exit". The ledger itself was NOT hand-edited: writing the figure
+  there mid-day would have made the 16:10 scoring run double-count
+  it (prior cum + today's fill). Verified before publishing: manual
+  refresh run succeeds (8.2s), board shows GRAB + SOFI only, SMMT in
+  the exit log at -$22.78 (broker's realized-gain figure; the
+  session's thesis arithmetic had -$22.77, a cent of rounding), exit
+  sum -$138.25 reconciles exactly; the Space refresh action then
+  published it ("Refreshed in 8.9s — latest marks saved").
+- **Judged by:** the next exit day must refresh the same morning
+  without a manual fix; the 16:10 scoring run after a pending exit
+  must land the same cumulative the board showed (no double count),
+  and the refresh after scoring must take the ledger figure with
+  pending empty.
+
+## 2026-11-16 — Board watch dates: out-of-year dates keep their year
+- **What changed:** `label_date()` in `packages/board/refresh.py`
+  now appends the year when a watch-item date falls outside the
+  current year ("Thu Sep 30 2027" instead of "Thu Sep 30"); same-year
+  dates are unchanged. The watch carryover parse was updated to read
+  year-bearing labels (it previously assumed every label was this
+  year's).
+- **Why:** Sreejith flagged the Next card reading "Thu Sep 30" for
+  GRAB's Atome phase 1 close — the date is 2027-09-30 in the thesis,
+  the nearest future holding event since the Nov 2 earnings passed,
+  but with no year it read as this past Sep 30. Verified: manual
+  refresh shows "Thu Sep 30 2027 | GRAB Atome phase 1 close"; Space
+  refresh action published it.
+- **Judged by:** no watch date ever reads as a past or wrong-year
+  date again; same-year labels unchanged.
+
+## 2026-11-16 — Board watch items: far-out events state their distance
+- **What changed:** `translate_watch()` in
+  `packages/board/refresh.py` appends "~N mo out" to a watch item's
+  detail when its date is more than 30 days away.
+- **Why:** Sreejith, on the year fix: a Next card showing an event a
+  year away with no distance cue reads as imminent. The holdings
+  genuinely have nothing nearer — both Q3 prints passed and SMMT's
+  binary resolved — so the card will show Sep 2027 for months; the
+  distance qualifier keeps it honest. Verified: the GRAB item now
+  reads "Atome phase 1 close expected (background) — ~10 mo out";
+  Space refresh published it.
+- **Judged by:** no watch item more than a month out displays
+  without its distance; near-term items unchanged.
+
+## 2026-11-16 — Account number out of the repo scripts
+- **What changed:** `packages/board/refresh.py` and
+  `packages/ops/score.py` no longer hardcode the Robinhood account
+  number. Both now read it from the `ROBINHOOD_ACCOUNT_NUMBER`
+  env var first, else the private file
+  `~/workspace/robinhood-mcp/.account_number` (outside both repos,
+  never synced), and fail loudly if neither exists. The number was
+  also scrubbed from `score.py`'s docstring.
+- **Why:** the account number was the blocker on syncing today's
+  board fixes (same-day-exit reconciliation, year-bearing watch
+  dates, distance qualifier) to the public repo — the sync script's
+  privacy gate refuses any push containing it, and `score.py`
+  (created after the last sync) carries it too. The refresh and the
+  16:10 scoring read the number from the same private file on this
+  machine, so no deployment change was needed.
+- **Judged by:** the sync gate passes on a simulated rsync of the
+  full tree; `score.py --verify` still passes 9/9 sessions exact;
+  the next scheduled 15-minute refresh and the 16:10 scoring run
+  are the live proof for the new loader.
+
+## 2026-11-16 — Scoring: closing fills classify against prior-close positions
+- **What changed:** `classify_fills()` in `packages/ops/score.py`
+  now takes live equity symbols UNION the prior session's positions
+  (parsed from the ledger's per-symbol row lines), and its docstring
+  says so. The 16:10 run gapped on the SMMT exit — a closing fill on
+  a name already gone from the live book was "unclassifiable" by
+  design. The same-day gap note was removed and the session re-scored:
+  Day 42 landed, --verify 1/1 sessions exact on all 10 figures,
+  cumulative realized -$138.25 (SMMT -$22.78 broker basis), and the
+  post-scoring board refresh took the ledger figure with pending
+  empty. A same-day gap note may be superseded by a re-score after a
+  fix; a gap note from a prior day stands and the next session
+  re-scores from its marks.
+- **Why:** the morning's pending-exit fix in refresh.py assumed
+  scoring would land the same cumulative; the classifier bug broke
+  that leg of the test on the first exit day. An exit day that cannot
+  score is the day scoring matters most.
+- **Judged by:** the next exit day scores at 16:10 without a gap;
+  --verify stays exact; no double-count in cumulative realized.
