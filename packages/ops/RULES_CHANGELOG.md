@@ -10,6 +10,22 @@ Newest entries go at the top.
 
 ---
 
+## 2026-11-23 — SOFI re-eval line re-anchored $13.50 → $12.48 after the trigger fired
+
+- **What:** SOFI closed Friday Nov 20 at $12.48, below the $13.50 close-based re-eval line — the trigger fired as written. Monday's 9:40 session ran the re-eval in writing and held (no exit): the break was a tape washout close (QQQ -19.9% off peak, VIX 35.89), no SOFI company fact changed, the tape reversed Monday morning (SOFI +7% off the close, NVDA +31% on Huang's reinstatement), and the LEAP's own -50% premium exit ($2.15) sits $0.90 below the $3.05 mark. The spent $13.50 line is replaced in SOFI.yaml by a close below $12.48 (Friday's close, fresh 52-wk low after the relief rally fails) as the new re-eval trigger; the -50% premium exit is unchanged.
+- **Why:** A spent line is not a line — leaving $13.50 in place after the close printed below it would make every subsequent session re-litigate a fired trigger. The re-anchor keeps a real, tighter tripwire (a new low after the market's biggest overhang resolved would be genuine continued deterioration) instead of silently waiving the rule.
+- **Judged by:** the next SOFI close test — a close below $12.48 fires the re-eval again; the 16:10 scoring keeps judging the LEAP against QQQ.
+
+---
+
+## 2026-11-23 — Close-based red lines: intraday touches demoted from act to alert (checkin.py + circuit-watch hook)
+
+- **What:** `checkin.py evaluate()` now returns `alert` (not `act`) when a price touches a close-based red line intraday, with the reason stating the line fires only on a close — and keeps scanning for a live (non-close-based) breach, which still means `act`. `circuit-watch.sh` now skips close-based lines in its breach loop entirely, so the hook stays silent on intraday touches of them. `TRIGGERS.md` breach bullet updated to match. Verified live the same morning: SOFI $13.44 intraday vs close-based $13.50 now reads ALERT in `checkin.py --mode full` (was ACT), and a dry-run hook poll returned silent / all clear on the same tape.
+- **Why:** The 2026-10-12 fix suppressed intraday *approach* alerts for close-based lines but left the *breach* side firing — the same false-positive class recurred four times on SOFI $13.50 (Nov 19 approach, Nov 20 9:44 AM / 12:14 PM / 3:29 PM), waking agents on a line whose close had not printed. An intraday touch of a close-based line is never actionable; only the closing print matters, and the morning session / close review own it.
+- **Judged by:** no hook wakes and no `act` verdicts on intraday touches of close-based lines; a genuine close-below still fires through the session/close-review path.
+
+---
+
 ## 2026-10-16 (afternoon) — checkin.py blinded by malformed thesis YAML; self-caught and fixed
 
 - **What:** The 3:10 PM hook worker appended decision records at end-of-file in CRWD.yaml and MU.yaml, after the `confirmation:`/`position:` tail keys — breaking yaml.safe_load and crashing checkin.py on startup (load_all throws on any single bad file). The alert-driven system was blind ~3:10–3:48 PM. Fixed by moving the stray entries into their `decisions:` sections, validated every thesis file parses, re-ran checkin cleanly (SMMT/CRWD/MU alerts evaluated). Backups kept at /tmp/CRWD.yaml.bak, /tmp/MU.yaml.bak. AGENTS.md lesson added: decision entries insert immediately before the `confirmation:` line, never at EOF, then re-validate.
@@ -458,3 +474,31 @@ Newest entries go at the top.
   score is the day scoring matters most.
 - **Judged by:** the next exit day scores at 16:10 without a gap;
   --verify stays exact; no double-count in cumulative realized.
+
+## 2026-11-16 — Board Next card: market-wide events alongside holding events
+- **What changed:** new `packages/board/market_events.yaml`
+  (9 seeded near-term events, public-syncable, no private data) and
+  `refresh.py` now loads it (`load_market_events()`: validated, fails
+  loudly on malformed entries, missing file means no market events)
+  and merges it into `translate_watch()`'s dated items, sorted by date
+  with the holding events. Market items are titled `Market — <event>`
+  (no ticker), detail is the event text, backdrop only — nothing
+  implying a position action. Only events within the next 30 days
+  show. The year label and `~N mo out` distance rules now live in a
+  shared `dated_item()` helper used by holding and market items alike.
+  Carryover skips `Market — ` titles (they regenerate from the YAML),
+  so a second refresh cannot duplicate them — unit-verified
+  idempotent. The 6-item cap now applies to dated events only: the
+  resting take-profit row is a live order and must not be crowded off
+  the card by nearer dates (caught in verification — the first manual
+  refresh dropped the GRAB $3.88 resting row under the old combined
+  cap; fixed before publishing).
+- **Why:** Sreejith, on the year fix: a Next card showing only
+  holding events — nearest ~10 months out — is confusing when the
+  week's real action (NVDA, Anthropic, FOMC) is market backdrop. The
+  card now shows what is actually next.
+- **Judged by:** the Next card's nearest items are this week's market
+  events; the GRAB take-profit stays visible; the next 15-minute
+  refresh produces no duplicate market items; the Sunday catalyst
+  sweep keeps `market_events.yaml` current (job edit proposed, not
+  applied — needs his yes).

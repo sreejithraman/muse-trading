@@ -1,0 +1,41 @@
+# Market-wide events for Mu$e's Book's Next card — near-term only.
+#
+# Source of truth for the board's market backdrop. The Sunday catalyst
+# sweep (discovery-catalyst-sweep, Sun 18:52 ET) keeps this current:
+# add newly verified events, drop past ones, keep only the next ~30
+# days. The board shows only events within 30 days of today.
+#
+# PUBLIC-SYNCABLE: no account numbers, positions, or thesis details.
+# Event text is backdrop only — it must never imply a position action.
+- date: '2026-11-24'
+  event: Analog Devices (ADI) earnings after close
+- date: '2026-11-25'
+  event: Q3 GDP 2nd estimate + Oct PCE inflation 8:30 AM ET; Fed Beige Book 2 PM ET
+- date: '2026-11-26'
+  event: Thanksgiving — market closed
+- date: '2026-11-27'
+  event: Market closes early, 1 PM ET
+- date: '2026-12-01'
+  event: JOLTS job openings 10 AM ET; CrowdStrike + Marvell earnings after close
+- date: '2026-12-02'
+  event: Salesforce (CRM) earnings after close
+- date: '2026-12-04'
+  event: November jobs report 8:30 AM ET
+- date: '2026-12-08'
+  event: Synopsys (SNPS) earnings
+- date: '2026-12-09'
+  event: FOMC decision + Summary of Economic Projections 2 PM ET; Broadcom + Adobe earnings after close
+- date: '2026-12-10'
+  event: November CPI 8:30 AM ET; Costco earnings after close
+- date: '2026-12-12'
+  event: PDUFA — Vanda/AnaptysBio imsidolimab (generalized pustular psoriasis)
+- date: '2026-12-14'
+  event: Oracle (ORCL) earnings
+- date: '2026-12-15'
+  event: November PPI 8:30 AM ET
+- date: '2026-12-17'
+  event: PDUFA — Corcept relacorilant (Cushing's syndrome)
+- date: '2026-12-18'
+  event: Quarterly options expiration
+- date: '2026-12-22'
+  event: PDUFA — Mineralys lorundrostat (resistant hypertension)

@@ -75,6 +75,8 @@ from datetime import datetime
 from pathlib import Path
 from zoneinfo import ZoneInfo
 
+import yaml
+
 HERE = Path(__file__).resolve().parent
 ROOT = HERE.parents[1]  # ~/workspace/trading-tools
 LEDGER = (
@@ -83,6 +85,7 @@ LEDGER = (
 )
 SERIES_PATH = HERE / "series.json"
 GENERATOR = HERE / "generate.py"
+MARKET_EVENTS = HERE / "market_events.yaml"
 
 MCP_PY = str(Path.home() / "workspace/robinhood-mcp/.venv/bin/python")
 MCP_TOOL = str(Path.home() / "workspace/robinhood-mcp/mcp_tool.py")
@@ -619,6 +622,51 @@ def translate_exits(gen_exits: list, ledger: dict, prev_exits: list,
     return rows
 
 
+def load_market_events(path: Path = MARKET_EVENTS) -> list[dict]:
+    """Market-wide events for the Next card, from market_events.yaml.
+
+    A missing file means no market events (additive, not load-bearing);
+    a malformed file fails loudly — bad data must not silently vanish.
+    Entries are validated to {date: ISO date, event: non-empty text}
+    and returned sorted by date. The file is public-syncable: no
+    account numbers, positions, or thesis details.
+    """
+    if not path.exists():
+        return []
+    try:
+        raw = yaml.safe_load(path.read_text()) or []
+    except yaml.YAMLError as e:
+        raise RefreshError(f"market_events.yaml is not valid YAML: {e}")
+    if not isinstance(raw, list):
+        raise RefreshError("market_events.yaml must be a list of events.")
+    out = []
+    for ev in raw:
+        if not isinstance(ev, dict):
+            raise RefreshError(f"market_events.yaml entry is not a mapping: {ev!r}")
+        iso = str(ev.get("date") or "")
+        event = str(ev.get("event") or "").strip()
+        try:
+            date_cls.fromisoformat(iso)
+        except ValueError:
+            raise RefreshError(f"market_events.yaml has a bad date: {iso!r}")
+        if not event:
+            raise RefreshError(f"market_events.yaml has an empty event for {iso}")
+        out.append({"date": iso, "event": event})
+    out.sort(key=lambda e: e["date"])
+    return out
+
+
+def dated_item(iso: str, title: str, event: str, today: date_cls) -> dict:
+    """One dated watch item. A date outside the current year keeps its
+    year, and an event more than 30 days out says how far out it is, so
+    a far event never reads as imminent."""
+    detail = event
+    far = (date_cls.fromisoformat(iso) - today).days
+    if far > 30:
+        detail = f"{event} — ~{max(1, far // 30)} mo out"
+    return {"dateLabel": label_date(iso, today), "title": title, "detail": detail}
+
+
 def translate_watch(gen: dict, positions: list, prev_watch: list,
                     today: date_cls, phase: str) -> list:
     prev_by_key = {}
@@ -641,14 +689,21 @@ def translate_watch(gen: dict, positions: list, prev_watch: list,
             if len(short) > 38:
                 short = short[:38].rsplit(" ", 1)[0]
             title = f"{ticker} {short}".strip()
-        # A far-out event must not read as imminent: say how far out it
-        # is. (The Next card otherwise shows a date ~a year away with
-        # no sense of distance.)
-        detail = event
-        far = (date_cls.fromisoformat(iso) - today).days
-        if far > 30:
-            detail = f"{event} — ~{max(1, far // 30)} mo out"
-        dated.append((iso, {"dateLabel": dl, "title": title, "detail": detail}))
+        dated.append((iso, dated_item(iso, title, event, today)))
+
+    # Market-wide events (backdrop, not decisions): merged into the same
+    # dated list, sorted by date with the holding events. Only the next
+    # 30 days show; the file holds near-term items only.
+    for ev in load_market_events():
+        iso = str(ev.get("date"))
+        event = (ev.get("event") or "").strip()
+        days = (date_cls.fromisoformat(iso) - today).days
+        if days < 0 or days > 30:
+            continue
+        short = re.sub(r"\s*\([^)]*\)\s*$", "", event)
+        if len(short) > 38:
+            short = short[:38].rsplit(" ", 1)[0]
+        dated.append((iso, dated_item(iso, f"Market — {short}", event, today)))
 
     price_word = "close" if phase == "close" else "last"
     for p in positions:
@@ -678,7 +733,8 @@ def translate_watch(gen: dict, positions: list, prev_watch: list,
     for w in prev_watch:
         dl = w.get("dateLabel") or ""
         title = w.get("title") or ""
-        if "re-arms" in title or "take-profit at" in title:
+        if ("re-arms" in title or "take-profit at" in title
+                or title.startswith("Market — ")):
             continue  # regenerated above / below
         try:
             # Labels carry their year when out-of-year; same-year labels
@@ -700,7 +756,9 @@ def translate_watch(gen: dict, positions: list, prev_watch: list,
         }))
 
     dated.sort(key=lambda t: t[0])
-    items = [item for _, item in dated]
+    # The cap is on dated events only: resting take-profit limits are
+    # live orders and must not be crowded off the card by nearer dates.
+    items = [item for _, item in dated][:6]
 
     # Resting native take-profit limits last.
     for p in positions:
@@ -727,7 +785,7 @@ def translate_watch(gen: dict, positions: list, prev_watch: list,
             "title": f"{p['ticker']} take-profit at {fmt_money(float(p['takeProfit']))}",
             "detail": detail,
         })
-    return items[:6]
+    return items
 
 
 def translate_paper(gen: dict) -> list:

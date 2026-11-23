@@ -143,6 +143,15 @@ def evaluate() -> dict:
                     d = (px / rl.price_level - 1) * 100
                     dist[rl.trigger[:48]] = round(d, 2)
                     if px <= rl.price_level:
+                        if rl.close_based:
+                            # Intraday touch of a close-based line is not
+                            # actionable: only the closing print fires it
+                            # (2026-11-20: 4th false-positive `act` on SOFI
+                            # $13.50 intraday touches). Demote to alert and
+                            # keep scanning for a live (non-close-based)
+                            # breach, which still means act.
+                            verdict, reasons = "alert", [f"below close-based red line intraday (fires only on close): {rl.trigger[:60]}"]
+                            continue
                         verdict, reasons = "act", [f"at/below red line: {rl.trigger[:60]}"]
                         break
                     if d <= ALERT_PCT:
