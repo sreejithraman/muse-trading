@@ -72,6 +72,11 @@ CANDIDATES = {
         # matched our verified position tape; CIFR $850M convert post carried
         # an 8-K-based model ($13.1M/MW, capped call 150% above close).
         "MohanadInv",
+        # @DarioCpx — nominated 2026-11-24: ARM wedge read in the 11/24
+        # trending sweep (Haas-through-2033 verified via Reuters/Arm
+        # newsroom; wedge levels 150.37/163.13 match Yahoo bars; daily
+        # close near 180 as the trigger) — substantive, checkable, dated.
+        "DarioCpx",
     ],
 }
 

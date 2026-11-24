@@ -201,11 +201,21 @@ def main() -> int:
                            "red_lines": [{"level": p, "close_based": cb}
                                          for p, cb in pls],
                            "warn_pct": ALERT_PCT, "drop_pct": DROP_PCT})
+        # Pre-registered entry triggers (rule 2026-11-24): only `armed`
+        # triggers with expiry >= today emit. Drafts never emit; expired
+        # triggers die silently here (no silent extension).
+        sys.path.insert(0, str(Path(__file__).resolve().parent))
+        import triggers as trigger_mod
+        trigs, trig_warns = trigger_mod.armed_triggers(today_iso)
+        for w in trig_warns:
+            print(f"WARNING: {w}", file=sys.stderr)
         Path(args.emit_watchlist).parent.mkdir(parents=True, exist_ok=True)
         Path(args.emit_watchlist).write_text(json.dumps(
             {"generated_at": datetime.now(timezone.utc).isoformat(timespec="seconds"),
-             "levels": levels}, indent=1))
-        print(f"wrote {args.emit_watchlist} ({len(levels)} symbols)")
+             "levels": levels, "triggers": trigs,
+             "trigger_warnings": trig_warns}, indent=1))
+        print(f"wrote {args.emit_watchlist} ({len(levels)} symbols, "
+              f"{len(trigs)} armed triggers)")
         return 0
 
     rep = evaluate()

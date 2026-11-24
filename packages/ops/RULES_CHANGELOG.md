@@ -502,3 +502,73 @@ Newest entries go at the top.
   refresh produces no duplicate market items; the Sunday catalyst
   sweep keeps `market_events.yaml` current (job edit proposed, not
   applied — needs his yes).
+
+## 2026-11-24 — Entry bar: a live resolution process counts as a catalyst
+- **What changed:** the entry bar's "dated reason" now accepts a live
+  resolution process with imminent resolution as a catalyst class. The
+  trigger is the resolution itself; the pending thesis must name the
+  process, what counts as resolution, and why resolution is imminent
+  (e.g. a board actively deliberating, government input in motion).
+  A calendar date is no longer the only acceptable form of "dated".
+- **Why:** NVDA Nov 20–23 — the CEO resolution was treated as
+  undated/no-catalyst, so the idea sat watch-only while the stock
+  fell 48% and then gapped +31% on reinstatement. A process that can
+  resolve any day is not the same as no catalyst. Raised by Sreejith
+  ("You missed out on the whole nvda drama and fear cycle...") and
+  owned the same night.
+- **Judged by:** the next spiky idea with a live process is ruled on
+  the process's imminence, not bounced for lacking a calendar date;
+  the spiky watchlist's live-process names are judged, not cut.
+
+## 2026-11-24 — Pre-registered triggers may fire entries without a session decision
+- **What changed:** a pending thesis may carry a pre-registered entry
+  trigger: entry condition, max entry price, red line, size (via the
+  ATR sizer), and expiry. When the condition fires during market
+  hours, the entry executes without a 9:40 session deliberation —
+  market order within the max price, stop + mechanical take-profit
+  placed at open, thesis file + record_fill() provenance written,
+  reported in the usual what/why/exposure shape. A trigger that has
+  not fired by expiry dies; no silent extension. Sreejith can cancel
+  any pending trigger at any time.
+- **Why:** Sreejith, Nov 24, approving the proposal ("let a
+  pre-registered trigger fire the entry"): gap events resolve before
+  the morning session can deliberate (NVDA reinstatement 9:07 AM,
+  +31% gap). Pre-registration moves the judgment before the event
+  instead of after it.
+- **Judged by:** the next queued spiky name whose trigger fires
+  enters with stop + take-profit in place and a provenance record;
+  no entry ever fires above its registered max price; no trigger
+  fires after expiry; every firing is reported the same day.
+
+## 2026-11-24 — Pre-registered trigger machinery: pending registry + stabilization + hook evaluation
+- **What changed:** `packages/thesis/pending/` registry (one YAML per judged idea, `draft | armed | fired | expired | cancelled`; drafts never emit, expired die via the emitter), `packages/ops/triggers.py` (pure load/evaluate/emit), `checkin.py --emit-watchlist` now emits armed triggers into the watchlist, and `circuit-watch.sh` evaluates them on its 15-min poll. STABILIZATION (v1): at a poll ≥10:00 AM ET, today's open within ±3% of prior close AND today's low so far above the washout low AND price ≥ reference (washout-day) close AND price ≤ max price; fires once/symbol/day. Hook worker executes the pre-registered entry (MCP re-verify, ATR sizer, market order within max, stop + TP at open, thesis promotion with `record_fill()`, watchlist re-emit, report). MRVL.yaml written as a DRAFT example only — no live trigger armed. v1 is equity-only; option expressions stay session-decided.
+- **Why:** Sreejith, Nov 24: "We should have a machine tuned to make money not rules for rules sake" — judge every piece by whether it changes a money decision. The trigger evaluator earns its keep only if it fires a filled entry; the registry and hook extension are the smallest path to that (reuses the existing 15-min poll, market-hours gate, dedup, and agent worker instead of a second poller).
+- **Judged by:** the next armed trigger fires a filled entry with stop + take-profit in place and a provenance record; no entry ever fires above its registered max price, on a gap day, or after expiry; the hook's holdings watch keeps working (dry-run verified 2026-11-24, see build report).
+
+## 2026-11-24 — Wide-stop entries size by risk cap only (sizer mode "risk_cap")
+- **What changed:** `packages/sizing/size.py suggest()` gained
+  `mode="risk_cap"`: notional = min(base_notional, 2% of equity /
+  stop_pct), skipping the ATR scalar and the QQQ regime cut. It applies
+  to wide-stop spiky entries — whether the entry fires via a
+  pre-registered trigger or a session decision (one rule per trade
+  shape, not per entry path). The circuit-watch worker prompt now sizes
+  trigger entries with mode="risk_cap"; the spiky draft and the MRVL
+  pending thesis carry the decided numbers. Default mode="atr" is
+  unchanged for all other entries.
+- **Why:** the ATR sizer triple-penalised trigger entries (ATR scalar
+  floored at 0.25 after the washout week itself inflated vol, QQQ
+  high-regime 0.5, wide 12–18% stop distance) and sized every spiky
+  name to $37–$49 — 0.17–0.41% risk against a 2% budget, near-immaterial.
+  The stop distance already prices the volatility (a washout-low anchor
+  is 12–18% away precisely because the name is volatile), so layering
+  ATR + regime on top double-counts it. The 2% cap is the real risk
+  control, and equalising risk per position is the vol-aware sizing the
+  paper asks for. Decided on own judgment per Sreejith's Nov 24
+  instruction ("No need to ask me. Use your judgement to fix mistakes
+  you notice") — the three-way choice (arm as-is / risk-cap-only /
+  defined-risk calls) was put to him and he returned it as a judgment
+  call, not a question.
+- **Judged by:** the next wide-stop entry risks ~2% (not 0.2–0.4%)
+  and sizes $185–$300 on this watchlist; verified live Nov 24
+  (MRVL $196.20 / 1.356 sh at 2.0% risk; ORCL $279.59; AMD $300.00
+  capped by base notional); no entry ever exceeds the 2% cap.

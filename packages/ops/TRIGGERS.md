@@ -45,7 +45,26 @@ The woken agent runs `checkin.py --mode light`, triages news on flagged names
   after the fact. Do not ask the user what to do.
 - `quiet` → stay silent.
 
-## 3. Discretionary one-offs
+## 3. Pre-registered entry triggers
+
+A pending thesis (`packages/thesis/pending/<TICKER>.yaml`, status `armed`)
+may carry an entry trigger. The circuit-watch evaluates it on its 15-min
+poll and wakes an agent to execute — no session deliberation, because the
+judgment was registered before the event (rule 2026-11-24).
+
+**STABILIZATION (v1)** — the only trigger condition. At a poll at or after
+10:00 AM ET, all four must hold: (1) not a gap day — today's open within
+±3% of the prior close; (2) no retest — today's intraday low so far is
+above the washout low; (3) reclaimed — price ≥ reference close
+(washout-day close); (4) hard cap — price ≤ max price. Fires once per
+symbol per day. On fire the worker re-verifies via Robinhood MCP, sizes via
+the ATR sizer, enters at market within the max price, places stop +
+mechanical take-profit at open, promotes the thesis with `record_fill()`
+provenance, re-emits the watchlist, and reports. A trigger that has not
+fired by its `expires` dies — the emitter stops emitting it. Drafts never
+emit; only `armed` triggers can fire.
+
+## 4. Discretionary one-offs
 
 Any session (or the main agent in chat) may schedule a one-off check-in with
 a stated reason — e.g. "recheck ARWR at 2 PM ahead of the webinar" or

@@ -3,6 +3,9 @@
 packages/thesis/theses/*.yaml
 !packages/thesis/theses/EXAMPLE.yaml
 
+# Pending theses carry trading intent (max prices, red lines) — never push.
+packages/thesis/pending/*.yaml
+
 # Local-only stop overrides for the TA demo (real book levels)
 packages/ta/fixed_stops.local.json
 

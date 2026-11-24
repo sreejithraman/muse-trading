@@ -5,12 +5,24 @@ record is volatility-blind sizing (median leverage flat at 5x across a 5.7x
 volatility spread; median realized return degrading ~10x from the calmest to
 the wildest sextile). Size is computed in code here, never a judgment call.
 
-Formula:
+Formula (mode="atr", default):
   vol         = ATR(14) / price              (daily volatility unit)
   scalar      = clamp(TARGET_VOL / vol, 0.25, 1.5)
   regime      = QQQ vol regime (high -> 0.5, else 1.0)
   notional    = base_notional * scalar * regime
   risk cap    : notional * stop_pct <= MAX_RISK_PCT * equity
+
+Formula (mode="risk_cap", wide-stop entries only — rule 2026-11-24):
+  notional    = min(base_notional, MAX_RISK_PCT * equity / stop_pct)
+  The ATR scalar and regime cut are skipped. For an entry whose stop is a
+  washout-low anchor, the stop distance already prices the volatility —
+  layering the ATR scalar (floored at 0.25 after a washout week) and the
+  regime cut on top double-counts it and shrinks the entry to ~$37, i.e.
+  0.2–0.4% risk against a 2% budget. The 2% cap is the real risk control,
+  and equalising risk per position IS the vol-aware sizing the paper asks
+  for. Applies to wide-stop spiky entries whether they fire via a
+  pre-registered trigger or a session decision — one rule per trade shape,
+  not per entry path.
 
 The morning session calls suggest() when sizing an entry; the scalar and
 regime are logged so sizing stays auditable.
@@ -47,8 +59,18 @@ def _volatility(symbol: str) -> tuple[float | None, float | None]:
 
 def suggest(symbol: str, entry_price: float, equity: float,
             base_notional: float = 300.0,
-            stop_pct: float | None = None) -> dict:
-    """Volatility-scaled size suggestion. Never raises on data gaps."""
+            stop_pct: float | None = None,
+            mode: str = "atr") -> dict:
+    """Volatility-scaled size suggestion. Never raises on data gaps.
+
+    mode="atr": full ATR + regime scaling (default, session entries).
+    mode="risk_cap": wide-stop entries only — notional is the risk cap
+    alone, min(base_notional, 2% of equity / stop_pct). The stop distance
+    already prices the volatility, so the ATR scalar and regime cut are
+    skipped (rule 2026-11-24).
+    """
+    if mode not in ("atr", "risk_cap"):
+        raise ValueError(f"unknown sizing mode: {mode}")
     vol, _ = _volatility(symbol)
     scalar = 1.0
     if vol and vol > 0:
@@ -65,6 +87,11 @@ def suggest(symbol: str, entry_price: float, equity: float,
                 regime_scalar = HIGH_REGIME_CUT
     except Exception:
         pass
+
+    if mode == "risk_cap":
+        scalar = 1.0
+        regime_scalar = 1.0
+        regime = "n/a (risk_cap)"
 
     notional = base_notional * scalar * regime_scalar
     if stop_pct and stop_pct > 0:
